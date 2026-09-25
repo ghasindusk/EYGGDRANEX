@@ -4,11 +4,11 @@
 **Date:** 2026-09-25  
 **Author:** SHAR-K  
 **Repository:** https://github.com/ghasindusk/EYGGDRANEX  
-**Tag:** https://github.com/ghasindusk/EYGGDRANEX/tree/v0.1.1-alpha
+**Release:** https://github.com/ghasindusk/EYGGDRANEX/releases/tag/v0.1.1-alpha
 
 ## Completion
 
-**GENESIS review integration: complete / tagged**
+**GENESIS review integration: complete / published**
 
 ## Completed
 
@@ -22,20 +22,21 @@
 - Per-platform golden digests recorded for Linux and Windows
 - Simulation contract 1 remains the active contract
 - Config/run-record/recorder/control tooling added
-- One-shot v0.1.0 publishing workflow removed
 - Project-specific Issue labels are configured
-- Annotated tag `v0.1.1-alpha` created and fixed to commit `94710f70bf3a5d4adb8db779c2fbdde633bdaafb`
+- Annotated tag `v0.1.1-alpha` is fixed to commit `94710f70bf3a5d4adb8db779c2fbdde633bdaafb`
+- Public GitHub prerelease **EYGGDRANEX v0.1.1-alpha — GENESIS Review Integration** is published
+- One-shot tag/release workflows were removed after use
 
 ## Release status
 
 - [x] PR #1 merged
-- [x] PR #2 (release prep) merged
+- [x] PR #2 release-prep merged
 - [x] main CI green
 - [x] package metadata bumped to 0.1.1a1
-- [x] CHANGELOG finalized for v0.1.1-alpha
+- [x] CHANGELOG finalized
 - [x] CITATION metadata updated
-- [x] annotated tag `v0.1.1-alpha` created
-- [ ] GitHub Release for v0.1.1-alpha published
+- [x] annotated tag created and verified
+- [x] GitHub prerelease published
 
 ## Remaining repository administration
 
