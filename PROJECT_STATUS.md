@@ -3,11 +3,12 @@
 **Version:** v0.1.1-alpha — GENESIS Review Integration  
 **Date:** 2026-09-25  
 **Author:** SHAR-K  
-**Repository:** https://github.com/ghasindusk/EYGGDRANEX
+**Repository:** https://github.com/ghasindusk/EYGGDRANEX  
+**Tag:** https://github.com/ghasindusk/EYGGDRANEX/tree/v0.1.1-alpha
 
 ## Completion
 
-**GENESIS review integration: complete / release preparation active**
+**GENESIS review integration: complete / tagged**
 
 ## Completed
 
@@ -15,6 +16,7 @@
 - v0.1.0-alpha baseline remains immutable
 - Independent Astra and Opus audits completed
 - ACCEPT-NOW findings integrated through PR #1
+- Release metadata finalized through PR #2
 - Main-branch CI passes on Python 3.11 / 3.12 / 3.13
 - Package wheel build/install smoke test passes
 - Per-platform golden digests recorded for Linux and Windows
@@ -22,15 +24,18 @@
 - Config/run-record/recorder/control tooling added
 - One-shot v0.1.0 publishing workflow removed
 - Project-specific Issue labels are configured
+- Annotated tag `v0.1.1-alpha` created and fixed to commit `94710f70bf3a5d4adb8db779c2fbdde633bdaafb`
 
-## Release preparation
+## Release status
 
 - [x] PR #1 merged
+- [x] PR #2 (release prep) merged
 - [x] main CI green
 - [x] package metadata bumped to 0.1.1a1
 - [x] CHANGELOG finalized for v0.1.1-alpha
 - [x] CITATION metadata updated
-- [ ] v0.1.1-alpha tag created
+- [x] annotated tag `v0.1.1-alpha` created
+- [ ] GitHub Release for v0.1.1-alpha published
 
 ## Remaining repository administration
 
