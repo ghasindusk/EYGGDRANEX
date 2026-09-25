@@ -18,13 +18,14 @@
 - [x] PROJECT_STATUS updated
 - [x] Annotated Git tag `v0.1.1-alpha` created
 - [x] Tag target verified as `94710f70bf3a5d4adb8db779c2fbdde633bdaafb`
-- [ ] GitHub Release published
+- [x] Public GitHub prerelease published
 
 ## Baseline protection
 - [x] `v0.1.0-alpha` remains untouched
 - [x] No force-push
 - [x] Contract-2 decisions remain deferred
 - [x] One-shot tag workflow removed after use
+- [x] One-shot release workflow removed after use
 
 ## Remaining GitHub administration
 - [ ] Repository Description updated
