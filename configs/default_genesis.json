@@ -1,0 +1,6 @@
+{
+  "seed": 42,
+  "population": 60,
+  "world": {"width": 100.0, "height": 100.0, "resource_patches": 55},
+  "steps": 1000
+}
