@@ -1,15 +1,106 @@
 # EYGGDRANEX
 
+**Japanese reading:** エグドラネクス  
+**Short technical identifier:** `EYGGNX`
+
 ### Open-Ended Artificial Digital Life Ecosystem
 
-**かつて憧れたデジタル生命の世界は、もうフィクションではない。**
+**Repository:** https://github.com/ghasindusk/EYGGDRANEX  
+**Author:** SHAR-K
 
-**今度は俺たちが、それを現実にする。  
-そして、その先へ。**
+> **かつて憧れたデジタル生命の世界は、もうフィクションではない。**  
+> **今度は俺たちが、それを現実にする。**  
+> **そして、その先へ。**
+>
+> *The worlds we once dreamed of are no longer fiction.  
+> Now, we can build beyond them.*
 
-*The worlds we once dreamed of are no longer fiction.  
-Now, we can build beyond them.*
+**EYGGDRANEX（エグドラネクス、略称 EYGGNX）**は、あらかじめ種・進化ツリー・敵・最適解を定義せず、低レベルの生命則と環境則からデジタル生命と生態系の創発を目指すオープンエンド型A-Lifeプロジェクトです。
 
-**EYGGDRANEX（エグドラネクス）** / **EYGGNX**
+> **We do not design life. We design the conditions from which life can emerge.**
 
-> We do not design life. We design the conditions from which life can emerge.
+## Naming
+
+- **Formal project/brand:** EYGGDRANEX
+- **Japanese reading:** エグドラネクス
+- **Technical short form:** EYGGNX
+- **Python distribution / CLI:** `eyggnx`
+
+`EYGGNX` is the preferred compact technical identifier. Public-facing releases and research citations should retain the full **EYGGDRANEX** name. The name is a coined project name; public materials do not claim affiliation with third-party mythological/game/software brands.
+
+## v0.1.0-alpha — GENESIS
+
+GENESISは最小の検証段階です。3D、LLM、文明、文化進化より先に、次の生命ループが再現可能に成立することを確認します。
+
+`Genome → Metabolism → Perception → Action → Energy → Reproduction → Mutation → Death → Selection`
+
+現在の最小実装には以下が含まれます。
+
+- 遺伝パラメータを持つデジタル個体
+- エネルギー代謝と移動コスト
+- 資源知覚と採餌
+- 無性生殖と遺伝子突然変異
+- 年齢・エネルギーによる死
+- 2Dトーラス世界と資源再生
+- Seed固定による再現可能な実験
+- 世代・個体数・平均遺伝値の簡易観測
+
+## What EYGGDRANEX defines / does not define
+
+**Defines:** information, energy, perception, metabolism, reproduction, mutation, environmental constraints and computation.
+
+**Does not predefine:** species, fixed evolution trees, enemies, quests, optimal strategies or final forms.
+
+ルールは結果を決めるためではなく、**可能性の境界を与えるため**に存在します。
+
+## Quick start
+
+```bash
+eyggnx --steps 200 --seed 42
+```
+
+開発環境から実行する場合:
+
+```bash
+python -m pip install -e .
+eyggnx --steps 200 --seed 42
+python -m unittest discover -s tests -v
+```
+
+## Repository map
+
+- `src/eyggnx/` — GENESIS最小エンジン（EYGGNX technical namespace）
+- `docs/specifications/` — Genome / Organism / Evolution / Ecosystem仕様
+- `docs/architecture/` — システム構造
+- `docs/research/` — 創発判定と実験原則
+- `experiments/genesis/` — 再現可能な実験記録
+- `.github/` — Issue/PRテンプレート
+
+## Roadmap
+
+- **Genesis** — 最小生命ループ
+- **Ecology** — 捕食・共生・寄生・ニッチ
+- **Cognition** — 学習・記憶・内発的動機
+- **Culture** — 社会・情報継承・技術進化
+- **Embodiment** — プロシージャル形態・3D世界
+- **Open World** — 外部データ流・分散生命圏
+
+詳細は [`ROADMAP.md`](ROADMAP.md) を参照してください。
+
+## Author
+
+**SHAR-K**
+
+Security reports should follow [`SECURITY.md`](SECURITY.md).
+
+## Licensing
+
+- **Source code:** Mozilla Public License 2.0 (`MPL-2.0`)
+- **Project documentation:** CC BY-SA 4.0
+- **EYGGDRANEX name / future official logos / official brand assets:** ライセンス対象外。別途許可なくブランドとしての使用権を付与しません。
+
+詳細は [`CONTENT_LICENSE.md`](CONTENT_LICENSE.md) と [`TRADEMARKS.md`](TRADEMARKS.md) を参照してください。
+
+## Status
+
+**v0.1.0-alpha — experimental.** 研究・実験用途を想定した初期段階であり、API互換性・生態系安定性・長期保存形式は保証されません。
