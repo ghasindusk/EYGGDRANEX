@@ -10,6 +10,8 @@ from dataclasses import dataclass
 import math
 import random
 
+from .validation import non_negative_int, positive_finite
+
 
 @dataclass(slots=True)
 class ResourcePatch:
@@ -25,8 +27,9 @@ class ResourcePatch:
 
 class World:
     def __init__(self, width: float, height: float, rng: random.Random, patches: int = 55):
-        self.width = width
-        self.height = height
+        self.width = positive_finite("width", width)
+        self.height = positive_finite("height", height)
+        non_negative_int("patches", patches)
         self.rng = rng
         self.resources = [
             ResourcePatch(

@@ -13,11 +13,21 @@ import json
 from .simulation import Simulation
 
 
+def _non_negative_int(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected an integer, got {text!r}") from None
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"must be >= 0, got {value}")
+    return value
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Run the EYGGDRANEX (EYGGNX) GENESIS simulation.")
-    p.add_argument("--steps", type=int, default=200)
+    p.add_argument("--steps", type=_non_negative_int, default=200)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--population", type=int, default=60)
+    p.add_argument("--population", type=_non_negative_int, default=60)
     return p
 
 

@@ -13,6 +13,7 @@ from statistics import fmean
 
 from .genome import Genome
 from .organism import Organism
+from .validation import non_negative_int, positive_finite
 from .world import World
 
 
@@ -30,6 +31,9 @@ class Snapshot:
 
 class Simulation:
     def __init__(self, seed: int = 42, population: int = 60, width: float = 100.0, height: float = 100.0):
+        non_negative_int("population", population)
+        width = positive_finite("width", width)
+        height = positive_finite("height", height)
         self.rng = random.Random(seed)
         self.world = World(width, height, self.rng)
         self.tick_index = 0
@@ -69,6 +73,7 @@ class Simulation:
         return self.snapshot()
 
     def run(self, steps: int) -> Snapshot:
+        non_negative_int("steps", steps)
         snap = self.snapshot()
         for _ in range(steps):
             snap = self.tick()
