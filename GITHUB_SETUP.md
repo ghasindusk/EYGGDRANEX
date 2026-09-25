@@ -12,7 +12,7 @@ Keep the repository title formal; use `eyggnx` for the executable/package.
 
 ## Recommended repository description
 
-自己生成・適応・進化するデジタル生命のためのオープンエンドA-Life生態系。An open-ended artificial digital life ecosystem — designing the conditions for life to emerge, adapt, and evolve.
+自己複製・変異・選択を通じて適応・進化するデジタル生命のためのオープンエンドA-Life生態系。An open-ended artificial digital life ecosystem — designing the conditions for life to emerge, adapt, and evolve.
 
 ## Suggested topics (max 20)
 

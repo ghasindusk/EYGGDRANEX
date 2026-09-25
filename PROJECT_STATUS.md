@@ -34,7 +34,7 @@ These three settings require repository-administration endpoints that are not ex
 
 ## Approved Description
 
-自己生成・適応・進化するデジタル生命のためのオープンエンドA-Life生態系。An open-ended artificial digital life ecosystem — designing the conditions for life to emerge, adapt, and evolve.
+自己複製・変異・選択を通じて適応・進化するデジタル生命のためのオープンエンドA-Life生態系。An open-ended artificial digital life ecosystem — designing the conditions for life to emerge, adapt, and evolve.
 
 ## Approved Topics
 
