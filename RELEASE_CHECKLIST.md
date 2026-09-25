@@ -30,10 +30,10 @@
 - [x] GitHub Actions CI enabled and passing
 - [ ] Repository Description changed to the approved Japanese + English copy
 - [ ] Repository Topics applied
-- [ ] Project-specific Issue labels created
+- [x] Project-specific Issue labels created
 - [ ] Private Vulnerability Reporting enabled
-- [ ] Git tag `v0.1.0-alpha` created
-- [ ] GitHub Release `EYGGDRANEX v0.1.0-alpha — GENESIS` published
+- [x] Git tag `v0.1.0-alpha` created
+- [x] GitHub prerelease `EYGGDRANEX v0.1.0-alpha — GENESIS` published
 
 ## Branding
 - [x] Brand identity document reviewed
@@ -41,4 +41,6 @@
 - [x] Japanese reading fixed as エグドラネクス
 - [x] Official short form fixed as EYGGNX
 
-> Note: the remaining unchecked GitHub administration items require repository-admin write endpoints not exposed by the currently connected GitHub integration.
+## Remaining administration boundary
+
+Description, Repository Topics, and Private Vulnerability Reporting require repository **Administration: write** permission endpoints. Those endpoints are not exposed by the connected GitHub integration and are not available to the normal GitHub Actions `GITHUB_TOKEN`.
