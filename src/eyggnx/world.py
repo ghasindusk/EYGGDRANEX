@@ -41,6 +41,11 @@ class World:
             )
             for _ in range(patches)
         ]
+        # Energy and capacity are drawn independently, so a patch can start above capacity.
+        # Normalize after drawing: same random draws, and the first regen tick would clip
+        # the excess anyway, so trajectories are unchanged.
+        for resource in self.resources:
+            resource.energy = min(resource.energy, resource.capacity)
 
     def wrap(self, x: float, y: float) -> tuple[float, float]:
         return x % self.width, y % self.height

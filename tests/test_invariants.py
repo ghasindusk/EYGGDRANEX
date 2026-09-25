@@ -104,6 +104,11 @@ class WorldGeometryTests(unittest.TestCase):
         self.world.resources = [ResourcePatch(1.0, 1.0, 0.2, 10.0, 0.0), ResourcePatch(3.0, 1.0, 0.21, 10.0, 0.0)]
         self.assertIs(self.world.nearest_resource(1.0, 1.0, 5.0), self.world.resources[1])
 
+    def test_initial_resource_energy_never_exceeds_capacity(self):
+        for seed in range(200):
+            for r in Simulation(seed=seed, population=0).world.resources:
+                self.assertLessEqual(r.energy, r.capacity)
+
     def test_nearest_resource_tie_prefers_first_patch(self):
         self.world.resources = [ResourcePatch(2.0, 1.0, 5.0, 10.0, 0.0), ResourcePatch(0.0, 1.0, 5.0, 10.0, 0.0)]
         self.assertIs(self.world.nearest_resource(1.0, 1.0, 5.0), self.world.resources[0])
