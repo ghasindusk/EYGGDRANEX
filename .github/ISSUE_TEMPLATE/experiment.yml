@@ -1,0 +1,19 @@
+name: Experiment report
+description: Propose or report a reproducible A-Life experiment
+title: "[Experiment] "
+labels: ["type:experiment"]
+body:
+  - type: textarea
+    attributes:
+      label: Hypothesis / question
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Seed(s)
+  - type: textarea
+    attributes:
+      label: Configuration and controls
+  - type: textarea
+    attributes:
+      label: Observations / metrics
