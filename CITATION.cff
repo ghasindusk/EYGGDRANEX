@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "EYGGDRANEX"
+message: "If you use EYGGDRANEX in research, please cite the project and the exact release or commit."
+type: software
+authors:
+  - family-names: "SHAR-K"
+version: "0.1.0-alpha"
+date-released: 2026-09-25
+license: MPL-2.0
+keywords:
+  - artificial-life
+  - alife
+  - open-ended-evolution
+  - digital-life
+  - ecosystem-simulation
+repository-code: "https://github.com/ghasindusk/EYGGDRANEX"
+url: "https://github.com/ghasindusk/EYGGDRANEX"
