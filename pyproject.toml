@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eyggnx"
+version = "0.1.0a1"
+description = "Open-ended artificial digital life ecosystem research sandbox"
+authors = [{name = "SHAR-K"}]
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MPL-2.0"}
+keywords = ["artificial-life", "alife", "evolution", "simulation", "digital-life"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+]
+
+[project.scripts]
+eyggnx = "eyggnx.cli:main"
+eyggdranex = "eyggnx.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/ghasindusk/EYGGDRANEX"
+Repository = "https://github.com/ghasindusk/EYGGDRANEX"
+Issues = "https://github.com/ghasindusk/EYGGDRANEX/issues"
+Changelog = "https://github.com/ghasindusk/EYGGDRANEX/blob/main/CHANGELOG.md"
