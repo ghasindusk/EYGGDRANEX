@@ -1,0 +1,39 @@
+name: Setup EYGGDRANEX Labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/setup-labels.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create project labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+
+          gh label create "area:genome" --repo "$repo" --color "5319E7" --description "Genome, heredity and mutation" --force
+          gh label create "area:metabolism" --repo "$repo" --color "0E8A16" --description "Energy, resources and metabolism" --force
+          gh label create "area:evolution" --repo "$repo" --color "1D76DB" --description "Selection, variation and evolutionary dynamics" --force
+          gh label create "area:brain" --repo "$repo" --color "7057FF" --description "Controllers, cognition, memory and learning" --force
+          gh label create "area:ecosystem" --repo "$repo" --color "008672" --description "Ecology, interactions and population dynamics" --force
+          gh label create "area:morphology" --repo "$repo" --color "D4C5F9" --description "Developmental and procedural morphology" --force
+          gh label create "area:world" --repo "$repo" --color "006B75" --description "World rules, environment and physics" --force
+          gh label create "area:visualization" --repo "$repo" --color "C5DEF5" --description "Visualization, UI and observability" --force
+
+          gh label create "type:feature" --repo "$repo" --color "A2EEEF" --description "New capability or mechanism" --force
+          gh label create "type:bug" --repo "$repo" --color "D73A4A" --description "Reproducible defect" --force
+          gh label create "type:experiment" --repo "$repo" --color "FBCA04" --description "Reproducible A-Life experiment" --force
+          gh label create "type:research" --repo "$repo" --color "BFDADC" --description "Research, literature or methodology" --force
+          gh label create "type:proposal" --repo "$repo" --color "D876E3" --description "Design proposal or RFC" --force
