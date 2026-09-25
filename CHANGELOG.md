@@ -1,30 +1,33 @@
 # Changelog
 
-## [Unreleased] — GENESIS review integration
+## [0.1.1-alpha] — 2026-09-25 — GENESIS review integration
 
 Approved ACCEPT-NOW items from the independent Astra/Opus audits
-(see the AI handoff pack's `03_AFTER_AUDIT/REVIEW_MATRIX.md`). **Simulation contract 1 is
-unchanged**: every valid seed produces a bit-identical trajectory to v0.1.0-alpha.
+(see the AI handoff pack's `03_AFTER_AUDIT/REVIEW_MATRIX.md`). **Simulation contract 1 remains the active contract.**
+For valid default runs, trajectories are preserved from the first simulation tick onward. Initial resource values that
+spawn above capacity are normalized at construction time in v0.1.1-alpha; v0.1.0-alpha performed the same clipping at
+the first world-regeneration tick.
 
 ### Added
 - `SimulationConfig` holding every former hard-coded constant (defaults unchanged), `ExperimentSpec`, `SIMULATION_CONTRACT = 1` and `GENE_BOUNDS`.
-- CLI: `--config PATH` (loads `configs/default_genesis.json`), `--format record` (versioned run record with seed, config, gene bounds, provenance and full-state digest), `--record-dir` / `--record-every`.
-- `Simulation.state_digest()`: exact full-state SHA-256 including RNG state.
+- CLI: `--config PATH` (loads `configs/default_genesis.json`), `--format record` (versioned run record with seed, config, gene bounds, provenance and dynamic-state digest), `--record-dir` / `--record-every`.
+- `Simulation.state_digest()`: exact SHA-256 over dynamic organism/resource/counter state plus RNG state. Experiment configuration and simulation contract are stored separately in the run record.
 - `eyggnx.recorder.Recorder`: observer-only JSONL time series (per-gene mean/sd/min/max, fraction at bounds) and lineage events with death causes.
 - Controls: `python -m eyggnx.controls` (mutation-only neutral drift) and `SimulationConfig(mutate_offspring=False)` (fixed-genome control).
 - Tests: invariants, torus geometry, energy ledger, lifecycle characterization (including list-order priority), per-platform golden digest, validation, config and recorder tests. CI builds and smoke-tests the wheel.
 
 ### Changed
 - Invalid inputs (negative steps/population, non-finite or non-positive dimensions) are rejected up front; the CLI exits with code 2.
-- Initial resource energy is clamped to patch capacity (trajectories unchanged, because the first regen tick already clipped it).
+- Initial resource energy is clamped to patch capacity during construction; from the first world tick onward this matches the previous trajectory because v0.1.0-alpha clipped the same excess during regeneration.
 - `nearest_resource` scans once (same result, ~8% faster).
 - The reference-seed test no longer requires survival; extinction is a valid outcome.
 
 ### Removed
-- `publish-genesis.yml` one-shot release workflow (its release exists; the workflow was not gated on tests or pinned to a commit). The `v0.1.0-alpha` tag and release are untouched.
+- `publish-genesis.yml` one-shot release workflow (its release exists; the workflow was not gated on tests or pinned to a commit). The `v0.1.0-alpha` tag and release remain untouched.
 
 ### Documentation
-- Exact tick semantics, list-order priority, mutation math, known directional biases, adaptation-channel rules, controls and a revised genesis-001 protocol. Narrowed "自己生成" in the repository description text.
+- Exact tick semantics, list-order priority, mutation math, known directional biases, adaptation-channel rules, controls and a revised genesis-001 protocol.
+- Clarified the scope of `state_digest()` and the tick-0 resource-normalization nuance.
 
 ## [0.1.0-alpha] — 2026-09-25
 
