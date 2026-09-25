@@ -71,9 +71,16 @@ class World:
         return math.hypot(dx, dy)
 
     def nearest_resource(self, x: float, y: float, radius: float) -> ResourcePatch | None:
+        # Single pass, same result as filter-then-min: strict "<" keeps the first patch on ties.
         threshold = self.config.perception_threshold
-        candidates = [r for r in self.resources if r.energy > threshold and self.distance(x, y, r.x, r.y) <= radius]
-        return min(candidates, key=lambda r: self.distance(x, y, r.x, r.y), default=None)
+        best: ResourcePatch | None = None
+        best_d = math.inf
+        for r in self.resources:
+            if r.energy > threshold:
+                d = self.distance(x, y, r.x, r.y)
+                if d <= radius and d < best_d:
+                    best, best_d = r, d
+        return best
 
     def tick(self) -> None:
         for resource in self.resources:
