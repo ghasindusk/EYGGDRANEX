@@ -124,10 +124,12 @@ class Simulation:
         return snap
 
     def state_digest(self) -> str:
-        """SHA-256 over the complete simulation state, including the RNG state.
+        """SHA-256 over dynamic simulation state plus the RNG state.
 
-        Floats are encoded with ``float.hex`` so the digest is exact: equal digests mean
-        bit-identical organisms, resources, counters and random stream.
+        Floats are encoded with ``float.hex``. Equal digests mean bit-identical
+        organisms, resources, counters and random stream for a given experiment
+        configuration and simulation contract. Configuration/contract metadata are
+        stored separately in the run record.
         """
         parts: list[tuple] = []
         for o in self.organisms:
