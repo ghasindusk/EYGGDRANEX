@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eyggnx"
-version = "0.1.0a1"
+version = "0.1.1a1"
 description = "Open-ended artificial digital life ecosystem research sandbox"
 authors = [{name = "SHAR-K"}]
 readme = "README.md"
