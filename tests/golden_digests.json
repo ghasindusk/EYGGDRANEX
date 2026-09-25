@@ -1,0 +1,14 @@
+{
+  "_comment": "Full-state digests (Simulation.state_digest) for simulation contract 1. Keys are '<sys.platform>-<machine>' because libm results may differ across platforms. A missing key skips the test; record one with `python tests/record_golden.py`. Changing an existing value is a simulation-contract change and must be explained in CHANGELOG.md.",
+  "simulation_contract": 1,
+  "cases": {
+    "seed42_pop60_ticks1000": {
+      "seed": 42,
+      "population": 60,
+      "ticks": 1000,
+      "digests": {
+        "win32-amd64": "bb9270596374d19ff96cb9e4ddfd37adf2accf97f5a1e6315e54c3ba1caf1850"
+      }
+    }
+  }
+}

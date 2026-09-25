@@ -6,7 +6,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+import hashlib
 import random
 from statistics import fmean
 
@@ -74,6 +75,23 @@ class Simulation:
             if not self.organisms:
                 break
         return snap
+
+    def state_digest(self) -> str:
+        """SHA-256 over the complete simulation state, including the RNG state.
+
+        Floats are encoded with ``float.hex`` so the digest is exact: equal digests mean
+        bit-identical organisms, resources, counters and random stream.
+        """
+        parts: list[tuple] = []
+        for o in self.organisms:
+            genes = tuple(float(getattr(o.genome, f.name)).hex() for f in fields(o.genome))
+            parts.append(("O", o.oid, o.parent_id, o.generation, o.age,
+                          o.x.hex(), o.y.hex(), o.energy.hex(), genes))
+        for r in self.world.resources:
+            parts.append(("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex()))
+        parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
+        parts.append(("RNG", repr(self.rng.getstate())))
+        return hashlib.sha256(repr(parts).encode()).hexdigest()
 
     def snapshot(self) -> Snapshot:
         if not self.organisms:
