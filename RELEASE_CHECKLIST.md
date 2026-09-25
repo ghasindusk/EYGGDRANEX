@@ -1,46 +1,28 @@
-# v0.1.0-alpha — GENESIS Release Checklist
+# v0.1.1-alpha — GENESIS Review Integration Release Checklist
 
 ## Code
-- [x] Unit tests pass
-- [x] Seed reproducibility test passes
-- [x] CLI smoke test passes
-- [x] Reference environment sustains multiple generations for tested baseline seeds
-- [x] Clean-copy installation test in release-preparation environment
-- [x] GitHub Actions CI passes on the public repository
-- [ ] Optional: clean-clone installation test on SHAR-K's target developer machine
+- [x] PR #1 merged
+- [x] Main-branch CI passes
+- [x] Python 3.11 / 3.12 / 3.13 tests pass
+- [x] Package wheel build/install smoke test passes
+- [x] Linux and Windows golden digests recorded
+- [x] Simulation contract 1 remains active
+- [x] Recorder trajectory-equivalence test passes
 
-## Identity / rights
-- [x] Name fixed as EYGGDRANEX / エグドラネクス / EYGGNX
-- [x] Code license: MPL-2.0
-- [x] Documentation license policy: CC BY-SA 4.0
-- [x] Brand-name exclusion documented
-- [x] Preliminary trademark similarity search completed (2026-09-25)
-- [ ] Final professional/J-PlatPat phonetic clearance before trademark filing or major commercial branding push
+## Release metadata
+- [x] Python package version set to 0.1.1a1
+- [x] CHANGELOG finalized
+- [x] CITATION.cff updated
+- [x] README status updated
+- [x] PROJECT_STATUS updated
+- [ ] Annotated Git tag `v0.1.1-alpha` created
 
-## GitHub publication
-- [x] Public repository created: `ghasindusk/EYGGDRANEX`
-- [x] README
-- [x] Source / tests / configuration
-- [x] Issue templates
-- [x] PR template
-- [x] CONTRIBUTING / SECURITY / CODE_OF_CONDUCT
-- [x] CITATION.cff
-- [x] MPL-2.0 LICENSE
-- [x] Repository URL inserted
-- [x] GitHub Actions CI enabled and passing
-- [ ] Repository Description changed to the approved Japanese + English copy
+## Baseline protection
+- [x] `v0.1.0-alpha` remains untouched
+- [x] No force-push
+- [x] Contract-2 decisions remain deferred
+
+## Remaining GitHub administration
+- [ ] Repository Description updated
 - [ ] Repository Topics applied
-- [x] Project-specific Issue labels created
 - [ ] Private Vulnerability Reporting enabled
-- [x] Git tag `v0.1.0-alpha` created
-- [x] GitHub prerelease `EYGGDRANEX v0.1.0-alpha — GENESIS` published
-
-## Branding
-- [x] Brand identity document reviewed
-- [x] `eyggnx` technical namespace smoke-tested
-- [x] Japanese reading fixed as エグドラネクス
-- [x] Official short form fixed as EYGGNX
-
-## Remaining administration boundary
-
-Description, Repository Topics, and Private Vulnerability Reporting require repository **Administration: write** permission endpoints. Those endpoints are not exposed by the connected GitHub integration and are not available to the normal GitHub Actions `GITHUB_TOKEN`.

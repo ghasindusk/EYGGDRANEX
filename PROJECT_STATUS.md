@@ -1,36 +1,42 @@
 # EYGGDRANEX Project Status
 
-**Version:** v0.1.0-alpha — GENESIS  
+**Version:** v0.1.1-alpha — GENESIS Review Integration  
 **Date:** 2026-09-25  
 **Author:** SHAR-K  
-**Repository:** https://github.com/ghasindusk/EYGGDRANEX  
-**Release:** https://github.com/ghasindusk/EYGGDRANEX/releases/tag/v0.1.0-alpha
+**Repository:** https://github.com/ghasindusk/EYGGDRANEX
 
 ## Completion
 
-**Public-alpha publication: 98%**
+**GENESIS review integration: complete / release preparation active**
 
 ## Completed
 
 - Public GitHub repository is live
-- Core GENESIS simulation source is published
-- Tests and deterministic seed checks are published
-- GitHub Actions CI is enabled and passing
-- MPL-2.0 code license is recognized by GitHub
-- Documentation and brand/licensing boundaries are published
-- Official naming is fixed as EYGGDRANEX / エグドラネクス / EYGGNX
-- Security contact is documented
+- v0.1.0-alpha baseline remains immutable
+- Independent Astra and Opus audits completed
+- ACCEPT-NOW findings integrated through PR #1
+- Main-branch CI passes on Python 3.11 / 3.12 / 3.13
+- Package wheel build/install smoke test passes
+- Per-platform golden digests recorded for Linux and Windows
+- Simulation contract 1 remains the active contract
+- Config/run-record/recorder/control tooling added
+- One-shot v0.1.0 publishing workflow removed
 - Project-specific Issue labels are configured
-- Annotated Git tag `v0.1.0-alpha` is published
-- GitHub prerelease **EYGGDRANEX v0.1.0-alpha — GENESIS** is published
+
+## Release preparation
+
+- [x] PR #1 merged
+- [x] main CI green
+- [x] package metadata bumped to 0.1.1a1
+- [x] CHANGELOG finalized for v0.1.1-alpha
+- [x] CITATION metadata updated
+- [ ] v0.1.1-alpha tag created
 
 ## Remaining repository administration
 
 - Apply approved bilingual repository Description
 - Apply repository Topics
 - Enable GitHub Private Vulnerability Reporting
-
-These three settings require repository-administration endpoints that are not exposed by the current ChatGPT GitHub integration.
 
 ## Approved Description
 
@@ -39,7 +45,3 @@ These three settings require repository-administration endpoints that are not ex
 ## Approved Topics
 
 `eyggnx`, `artificial-life`, `alife`, `digital-life`, `open-ended-evolution`, `evolution`, `evolutionary-computation`, `emergent-behavior`, `agent-based-modeling`, `ecosystem-simulation`, `complex-systems`, `artificial-intelligence`, `simulation`, `digital-ecosystem`, `procedural-generation`, `computational-biology`
-
-## Release status
-
-**GO — public alpha published.** The remaining items are repository metadata/security-administration settings, not GENESIS implementation blockers.
