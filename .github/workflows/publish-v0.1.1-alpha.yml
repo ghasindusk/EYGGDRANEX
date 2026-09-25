@@ -1,0 +1,33 @@
+name: Publish EYGGDRANEX v0.1.1-alpha
+
+on:
+  push:
+    branches:
+      - release/v0.1.1-alpha
+    paths:
+      - ".github/workflows/publish-v0.1.1-alpha.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v0.1.1-alpha
+
+      - name: Publish GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "v0.1.1-alpha" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v0.1.1-alpha already exists; refusing to overwrite."
+            exit 1
+          fi
+
+          gh release create "v0.1.1-alpha"             --repo "$GITHUB_REPOSITORY"             --title "EYGGDRANEX v0.1.1-alpha — GENESIS Review Integration"             --notes-file "RELEASE_NOTES_v0.1.1-alpha.md"             --prerelease             --verify-tag
