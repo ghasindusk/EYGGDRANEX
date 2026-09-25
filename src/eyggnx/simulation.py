@@ -10,6 +10,7 @@ from dataclasses import dataclass, fields
 import hashlib
 import random
 from statistics import fmean
+from typing import Protocol
 
 from .config import SimulationConfig
 from .genome import Genome
@@ -28,6 +29,14 @@ class Snapshot:
     mean_speed: float
     mean_sensor_range: float
     mean_metabolism: float
+
+
+class SimulationObserver(Protocol):
+    def on_birth(self, tick: int, child: Organism, parent: Organism) -> None: ...
+
+    def on_death(self, tick: int, organism: Organism, cause: str) -> None: ...
+
+    def on_tick(self, sim: "Simulation") -> None: ...
 
 
 class Simulation:
@@ -71,25 +80,38 @@ class Simulation:
             )
             for i in range(population)
         ]
+        #: Optional observer (see ``eyggnx.recorder``). Observers must not mutate state or
+        #: draw from ``self.rng``; the trajectory is identical with or without one.
+        self.observer: SimulationObserver | None = None
 
     def tick(self) -> Snapshot:
         self.tick_index += 1
         self.world.tick()
+        observer = self.observer
 
         births: list[Organism] = []
         for organism in list(self.organisms):
             if organism.alive:
                 organism.step(self.world, self.rng)
                 if organism.can_reproduce():
-                    births.append(organism.reproduce(self.next_id, self.rng, self.world))
+                    child = organism.reproduce(self.next_id, self.rng, self.world)
+                    births.append(child)
                     self.next_id += 1
+                    if observer is not None:
+                        observer.on_birth(self.tick_index, child, organism)
 
         before = len(self.organisms)
+        if observer is not None:
+            for o in self.organisms:
+                if not o.alive:
+                    observer.on_death(self.tick_index, o, "starvation" if o.energy <= 0.0 else "age")
         self.organisms = [o for o in self.organisms if o.alive]
         deaths = before - len(self.organisms)
         self.organisms.extend(births)
         self.births_total += len(births)
         self.deaths_total += deaths
+        if observer is not None:
+            observer.on_tick(self)
         return self.snapshot()
 
     def run(self, steps: int) -> Snapshot:

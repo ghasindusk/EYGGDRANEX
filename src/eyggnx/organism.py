@@ -73,7 +73,7 @@ class Organism:
             x=x,
             y=y,
             energy=child_energy,
-            genome=self.genome.mutate(rng),
+            genome=self.genome.mutate(rng) if world.config.mutate_offspring else self.genome,
             generation=self.generation + 1,
             parent_id=self.oid,
         )

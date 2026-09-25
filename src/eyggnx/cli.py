@@ -11,6 +11,7 @@ from dataclasses import asdict, replace
 import json
 
 from .config import ExperimentSpec, load_experiment
+from .recorder import Recorder
 from .run_record import build_run_record
 from .simulation import Simulation
 
@@ -35,6 +36,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--format", choices=("snapshot", "record"), default="snapshot",
                    help="'snapshot' prints the final Snapshot (legacy output); "
                         "'record' prints a versioned run record with seed, config and provenance")
+    p.add_argument("--record-dir", metavar="DIR",
+                   help="write timeseries.jsonl and events.jsonl (lineage) into DIR; does not change the run")
+    p.add_argument("--record-every", type=_non_negative_int, default=1, metavar="N",
+                   help="timeseries sampling interval in ticks (default 1)")
     return p
 
 
@@ -51,9 +56,20 @@ def main() -> None:
         spec = resolve_spec(args)
     except (OSError, ValueError, TypeError) as exc:
         parser.error(str(exc))
+    if args.record_every < 1:
+        parser.error("--record-every must be >= 1")
     sim = Simulation(seed=spec.seed, population=spec.population, config=spec.config)
-    snap = sim.run(spec.steps)
-    output = asdict(snap) if args.format == "snapshot" else build_run_record(spec, sim, snap)
+    if args.record_dir:
+        with Recorder(sim, args.record_dir, every=args.record_every):
+            snap = sim.run(spec.steps)
+    else:
+        snap = sim.run(spec.steps)
+    if args.format == "snapshot":
+        output = asdict(snap)
+    else:
+        output = build_run_record(spec, sim, snap)
+        if args.record_dir:
+            output["recording"] = {"directory": args.record_dir, "every": args.record_every}
     print(json.dumps(output, indent=2, ensure_ascii=False))
 
 

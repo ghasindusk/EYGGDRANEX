@@ -48,6 +48,9 @@ class SimulationConfig:
     perception_threshold: float = 0.2  # patches at or below this energy are invisible
     wander_step_range: tuple[float, float] = (0.25, 1.0)  # random-walk step as a fraction of speed
     offspring_offset: float = 1.0  # distance at which a child is placed from its parent
+    # Experiment control: False = fixed-genome control, children copy the parent genome exactly
+    # (founders still receive their one initial mutation). Changes the trajectory by design.
+    mutate_offspring: bool = True
 
     def __post_init__(self) -> None:
         positive_finite("width", self.width)
@@ -62,6 +65,8 @@ class SimulationConfig:
         if not math.isfinite(self.perception_threshold) or self.perception_threshold < 0:
             raise ValueError(f"perception_threshold must be finite and >= 0, got {self.perception_threshold}")
         positive_finite("offspring_offset", self.offspring_offset)
+        if not isinstance(self.mutate_offspring, bool):
+            raise TypeError("mutate_offspring must be a bool")
 
     def to_dict(self) -> dict[str, Any]:
         return {k: list(v) if isinstance(v, tuple) else v for k, v in asdict(self).items()}
