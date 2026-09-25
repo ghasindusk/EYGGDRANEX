@@ -26,11 +26,11 @@
 - **Technical short form:** EYGGNX
 - **Python distribution / CLI:** `eyggnx`
 
-`EYGGNX` is the preferred compact technical identifier. Public-facing releases and research citations should retain the full **EYGGDRANEX** name. The name is a coined project name; public materials do not claim affiliation with third-party mythological/game/software brands.
+`EYGGNX` is the preferred compact technical identifier. Public-facing releases and research citations should retain the full **EYGGDRANEX** name.
 
-## v0.1.0-alpha — GENESIS
+## v0.1.1-alpha — GENESIS Review Integration
 
-GENESISは最小の検証段階です。3D、LLM、文明、文化進化より先に、次の生命ループが再現可能に成立することを確認します。
+v0.1.1-alpha は、公開済み v0.1.0-alpha を基準点として Astra / Opus の独立監査を統合した品質・再現性強化版です。simulation contract 1 を維持しつつ、実験設定、run record、lineage/時系列記録、対照条件、入力検証、golden digest、package CI を追加しています。
 
 `Genome → Metabolism → Perception → Action → Energy → Reproduction → Mutation → Death → Selection`
 
@@ -43,15 +43,17 @@ GENESISは最小の検証段階です。3D、LLM、文明、文化進化より�
 - 年齢・エネルギーによる死
 - 2Dトーラス世界と資源再生
 - Seed固定による再現可能な実験
-- 世代・個体数・平均遺伝値の簡易観測
-- 設定ファイル・run record・時系列/系統ログ・対照条件（中立ドリフト、固定ゲノム）
+- 設定ファイル・run record・時系列/系統ログ
+- 中立ドリフト / 固定ゲノム対照
+- platform別 golden digest と wheel/package CI
 
 ### Current limitations
 
 - 行動則は固定の資源指向制御器で、遺伝しない。進化するのは生理・生活史パラメータだけである。
 - 個体はリスト順に行動する。この順序は進化する生活史戦略に強く影響する（`docs/specifications/ORGANISM_SPEC.md`）。
 - 対価のない遺伝子は、長期的に clamp 境界へ移動する（`docs/specifications/GENOME_SPEC.md`）。
-- これらを踏まえ、GENESIS の結果は「創発の実証」ではなく、計測可能な基準系として扱う。
+- golden digest はplatformごとに管理する。現時点でOSをまたいだbit-identical trajectoryは主張しない。
+- GENESIS の結果は「創発の実証」ではなく、計測可能な基準系として扱う。
 
 ## What EYGGDRANEX defines / does not define
 
@@ -85,12 +87,12 @@ eyggnx --config configs/default_genesis.json --format record --record-dir runs/d
 
 ## Repository map
 
-- `src/eyggnx/` — GENESIS最小エンジン（EYGGNX technical namespace）
+- `src/eyggnx/` — GENESIS最小エンジン
 - `docs/specifications/` — Genome / Organism / Evolution / Ecosystem仕様
 - `docs/architecture/` — システム構造
 - `docs/research/` — 創発判定と実験原則
 - `experiments/genesis/` — 再現可能な実験記録
-- `.github/` — Issue/PRテンプレート
+- `.github/` — CI / Issue / PR設定
 
 ## Roadmap
 
@@ -113,10 +115,10 @@ Security reports should follow [`SECURITY.md`](SECURITY.md).
 
 - **Source code:** Mozilla Public License 2.0 (`MPL-2.0`)
 - **Project documentation:** CC BY-SA 4.0
-- **EYGGDRANEX name / future official logos / official brand assets:** ライセンス対象外。別途許可なくブランドとしての使用権を付与しません。
+- **EYGGDRANEX name / future official logos / official brand assets:** ライセンス対象外。
 
 詳細は [`CONTENT_LICENSE.md`](CONTENT_LICENSE.md) と [`TRADEMARKS.md`](TRADEMARKS.md) を参照してください。
 
 ## Status
 
-**v0.1.0-alpha — experimental.** 研究・実験用途を想定した初期段階であり、API互換性・生態系安定性・長期保存形式は保証されません。
+**v0.1.1-alpha — experimental.** 研究・実験用途を想定した初期段階であり、API互換性・生態系安定性・長期保存形式は保証されません。
