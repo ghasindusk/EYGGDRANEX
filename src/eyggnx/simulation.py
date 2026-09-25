@@ -11,6 +11,7 @@ import hashlib
 import random
 from statistics import fmean
 
+from .config import SimulationConfig
 from .genome import Genome
 from .organism import Organism
 from .validation import non_negative_int, positive_finite
@@ -30,12 +31,31 @@ class Snapshot:
 
 
 class Simulation:
-    def __init__(self, seed: int = 42, population: int = 60, width: float = 100.0, height: float = 100.0):
+    """GENESIS simulation, simulation contract 1.
+
+    Pass either ``width``/``height`` or a full ``config``; with a config, leave
+    ``width`` and ``height`` at their defaults.
+    """
+
+    def __init__(
+        self,
+        seed: int = 42,
+        population: int = 60,
+        width: float = 100.0,
+        height: float = 100.0,
+        *,
+        config: SimulationConfig | None = None,
+    ):
         non_negative_int("population", population)
-        width = positive_finite("width", width)
-        height = positive_finite("height", height)
+        if config is None:
+            config = SimulationConfig(width=positive_finite("width", width), height=positive_finite("height", height))
+        elif (width, height) != (100.0, 100.0):
+            raise ValueError("pass width/height through config, not as separate arguments")
+        width, height = config.width, config.height
+        self.seed = seed
+        self.config = config
         self.rng = random.Random(seed)
-        self.world = World(width, height, self.rng)
+        self.world = World(width, height, self.rng, config.resource_patches, config=config)
         self.tick_index = 0
         self.births_total = 0
         self.deaths_total = 0
@@ -46,7 +66,7 @@ class Simulation:
                 oid=i,
                 x=self.rng.random() * width,
                 y=self.rng.random() * height,
-                energy=self.rng.uniform(16.0, 26.0),
+                energy=self.rng.uniform(*config.founder_energy_range),
                 genome=base.mutate(self.rng),
             )
             for i in range(population)

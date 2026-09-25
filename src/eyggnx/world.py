@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import math
 import random
 
+from .config import SimulationConfig
 from .validation import non_negative_int, positive_finite
 
 
@@ -26,18 +27,28 @@ class ResourcePatch:
 
 
 class World:
-    def __init__(self, width: float, height: float, rng: random.Random, patches: int = 55):
+    def __init__(
+        self,
+        width: float,
+        height: float,
+        rng: random.Random,
+        patches: int = 55,
+        config: SimulationConfig | None = None,
+    ):
         self.width = positive_finite("width", width)
         self.height = positive_finite("height", height)
         non_negative_int("patches", patches)
+        if config is None:
+            config = SimulationConfig(width=self.width, height=self.height, resource_patches=patches)
+        self.config = config
         self.rng = rng
         self.resources = [
             ResourcePatch(
                 x=rng.random() * width,
                 y=rng.random() * height,
-                energy=rng.uniform(18.0, 34.0),
-                capacity=rng.uniform(26.0, 46.0),
-                regen=rng.uniform(0.18, 0.55),
+                energy=rng.uniform(*config.patch_energy_range),
+                capacity=rng.uniform(*config.patch_capacity_range),
+                regen=rng.uniform(*config.patch_regen_range),
             )
             for _ in range(patches)
         ]
@@ -60,7 +71,8 @@ class World:
         return math.hypot(dx, dy)
 
     def nearest_resource(self, x: float, y: float, radius: float) -> ResourcePatch | None:
-        candidates = [r for r in self.resources if r.energy > 0.2 and self.distance(x, y, r.x, r.y) <= radius]
+        threshold = self.config.perception_threshold
+        candidates = [r for r in self.resources if r.energy > threshold and self.distance(x, y, r.x, r.y) <= radius]
         return min(candidates, key=lambda r: self.distance(x, y, r.x, r.y), default=None)
 
     def tick(self) -> None:
