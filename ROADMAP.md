@@ -15,9 +15,14 @@
 - [x] Mutation
 - [x] Death
 - [x] Deterministic seed
-- [ ] CSV/JSON experiment export
-- [ ] lineage graph export
+- [x] JSON experiment export (run record, JSONL time series)
+- [x] lineage event export (births/deaths incl. dead organisms)
+- [x] invariant tests and versioned full-state golden digest
+- [x] neutral-drift and fixed-genome controls
 - [ ] long-run stability tests
+- [ ] decide update-order semantics (simulation contract 2)
+- [ ] named RNG streams (simulation contract 2)
+- [ ] golden digests for Linux / other platforms
 
 ## Phase 2 — ECOLOGY (`v0.2.x-alpha`)
 - [ ] multiple resource chemistries

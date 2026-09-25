@@ -44,6 +44,14 @@ GENESISは最小の検証段階です。3D、LLM、文明、文化進化より�
 - 2Dトーラス世界と資源再生
 - Seed固定による再現可能な実験
 - 世代・個体数・平均遺伝値の簡易観測
+- 設定ファイル・run record・時系列/系統ログ・対照条件（中立ドリフト、固定ゲノム）
+
+### Current limitations
+
+- 行動則は固定の資源指向制御器で、遺伝しない。進化するのは生理・生活史パラメータだけである。
+- 個体はリスト順に行動する。この順序は進化する生活史戦略に強く影響する（`docs/specifications/ORGANISM_SPEC.md`）。
+- 対価のない遺伝子は、長期的に clamp 境界へ移動する（`docs/specifications/GENOME_SPEC.md`）。
+- これらを踏まえ、GENESIS の結果は「創発の実証」ではなく、計測可能な基準系として扱う。
 
 ## What EYGGDRANEX defines / does not define
 
@@ -66,6 +74,14 @@ python -m pip install -e .
 eyggnx --steps 200 --seed 42
 python -m unittest discover -s tests -v
 ```
+
+再現可能な実験記録を残す場合:
+
+```bash
+eyggnx --config configs/default_genesis.json --format record --record-dir runs/demo > runs/demo.json
+```
+
+詳細は [`EXPERIMENT_PROTOCOL.md`](EXPERIMENT_PROTOCOL.md) を参照してください。
 
 ## Repository map
 

@@ -30,12 +30,13 @@ class Organism:
         return self.energy > 0.0 and self.age < self.genome.max_age
 
     def step(self, world: World, rng: random.Random) -> float:
+        cfg = world.config
         self.age += 1
         target = world.nearest_resource(self.x, self.y, self.genome.sensor_range)
 
         if target is None:
             angle = rng.random() * math.tau
-            distance = self.genome.speed * rng.uniform(0.25, 1.0)
+            distance = self.genome.speed * rng.uniform(*cfg.wander_step_range)
             dx, dy = math.cos(angle) * distance, math.sin(angle) * distance
         else:
             dx, dy = world.delta(self.x, self.y, target.x, target.y)
@@ -51,9 +52,9 @@ class Organism:
         self.energy -= self.genome.metabolism + travelled * self.genome.movement_cost
 
         eaten = 0.0
-        target = world.nearest_resource(self.x, self.y, radius=1.1)
+        target = world.nearest_resource(self.x, self.y, radius=cfg.contact_radius)
         if target is not None:
-            eaten = min(target.energy, 3.0)
+            eaten = min(target.energy, cfg.bite_size)
             target.energy -= eaten
             self.energy += eaten
         return eaten
@@ -65,13 +66,14 @@ class Organism:
         child_energy = self.energy * self.genome.offspring_fraction
         self.energy -= child_energy
         angle = rng.random() * math.tau
-        x, y = world.wrap(self.x + math.cos(angle), self.y + math.sin(angle))
+        offset = world.config.offspring_offset
+        x, y = world.wrap(self.x + math.cos(angle) * offset, self.y + math.sin(angle) * offset)
         return Organism(
             oid=child_id,
             x=x,
             y=y,
             energy=child_energy,
-            genome=self.genome.mutate(rng),
+            genome=self.genome.mutate(rng) if world.config.mutate_offspring else self.genome,
             generation=self.generation + 1,
             parent_id=self.oid,
         )
