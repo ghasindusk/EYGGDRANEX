@@ -27,6 +27,8 @@
 
 - Large nutrient files are split by default: a file whose energy exceeds `nutrient_split_energy` (2,000) is split into the fewest equal chunks of about that energy, each its own patch; smaller files stay whole. Set it to 0 to keep every file whole.
 
+- Periodic nutrient regrowth: with `nutrient_regrow_interval > 0`, every that many ticks all external data nutrients are restored to their loaded energy, and eaten-up ones reappear at the same place. Off by default.
+
 ### Fixed
 - Loading nutrients no longer fails when a file in the directory cannot be read (e.g. Google Drive `.gdoc` placeholders); such files are skipped and listed under `unreadable` in the manifest.
 

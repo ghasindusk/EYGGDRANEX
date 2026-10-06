@@ -301,5 +301,45 @@ class CategoryTests(NutrientDirTestCase):
         self.assertEqual(ExperimentSpec.from_dict(json.loads(json.dumps(spec.to_dict()))), spec)
 
 
+class RegrowthTests(NutrientDirTestCase):
+    def test_eaten_nutrients_come_back_at_the_interval(self):
+        self.write("a", os.urandom(2_000).hex().encode())
+        sim = Simulation(seed=1, population=0, config=self.config(resource_patches=0, nutrient_regrow_interval=5))
+        (patch,) = sim.world.resources
+        loaded = (patch.energy, patch.reservoir)
+        patch.energy, patch.reservoir = 0.0, 0.0
+        sim.tick()
+        self.assertEqual(sim.world.resources, [])  # exhausted and removed
+        for _ in range(4):
+            sim.tick()
+        self.assertEqual(sim.tick_index, 5)
+        self.assertEqual(len(sim.world.resources), 1)
+        self.assertIs(sim.world.resources[0], patch)
+        self.assertEqual((patch.energy, patch.reservoir), loaded)
+
+    def test_partly_eaten_nutrients_are_refilled_in_place(self):
+        self.write("a", os.urandom(2_000).hex().encode())
+        sim = Simulation(seed=1, population=0, config=self.config(resource_patches=0, nutrient_regrow_interval=3))
+        (patch,) = sim.world.resources
+        total = patch.energy + patch.reservoir
+        patch.reservoir -= 5.0
+        for _ in range(3):
+            sim.tick()
+        self.assertEqual(len(sim.world.resources), 1)
+        self.assertAlmostEqual(patch.energy + patch.reservoir, total)
+
+    def test_regrowth_is_deterministic_and_off_by_default(self):
+        for i in range(5):
+            self.write(f"f{i}", os.urandom(600))
+        self.assertEqual(SimulationConfig().nutrient_regrow_interval, 0)
+        cfg = self.config(resource_patches=0, nutrient_regrow_interval=50)
+        a, b = (Simulation(seed=4, population=30, config=cfg) for _ in range(2))
+        a.run(400)
+        b.run(400)
+        self.assertEqual(a.state_digest(), b.state_digest())
+        with self.assertRaises(ValueError):
+            SimulationConfig(nutrient_regrow_interval=-1)
+
+
 if __name__ == "__main__":
     unittest.main()
