@@ -19,7 +19,7 @@
 - [x] lineage event export (births/deaths incl. dead organisms)
 - [x] invariant tests and versioned full-state golden digest
 - [x] neutral-drift and fixed-genome controls
-- [ ] long-run stability tests
+- [x] long-run stability tests (`python -m eyggnx.stability`, `tests/test_stability.py`)
 - [ ] decide update-order semantics (simulation contract 2)
 - [ ] named RNG streams (simulation contract 2)
 - [x] golden digests for Linux / Windows (`linux-x86_64`, `win32-amd64`)

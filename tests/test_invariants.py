@@ -78,11 +78,12 @@ class DeterminismTests(unittest.TestCase):
         data = json.loads(Path(__file__).with_name("golden_digests.json").read_text(encoding="utf-8"))
         key = f"{sys.platform}-{platform.machine().lower()}"
         for name, case in data["cases"].items():
-            expected = case["digests"].get(key)
-            if expected is None:
-                self.skipTest(f"no golden digest recorded for {key}; run tests/record_golden.py")
             sim = Simulation(seed=case["seed"], population=case["population"])
             sim.run(case["ticks"])
+            expected = case["digests"].get(key)
+            if expected is None:
+                self.skipTest(f"no golden digest recorded for {key} ({name}: {sim.state_digest()}); "
+                              "record it with tests/record_golden.py --write")
             self.assertEqual(sim.state_digest(), expected, f"{name}: simulation contract 1 trajectory changed")
 
 

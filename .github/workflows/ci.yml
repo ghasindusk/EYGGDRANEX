@@ -11,10 +11,19 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: test (${{ matrix.os }}, ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.11", "3.12", "3.13"]
+        include:
+          # Golden digests are recorded per platform, so every recorded platform runs here.
+          - os: windows-latest
+            python-version: "3.12"
+          - os: macos-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,7 +34,7 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests -v
       - name: Report golden digests for this platform
-        # Prints the contract-1 digest so a missing platform can be recorded deliberately.
+        # Prints the digests so a missing platform can be recorded deliberately.
         run: python tests/record_golden.py
       - name: Compile source
         run: python -m compileall -q src tests examples

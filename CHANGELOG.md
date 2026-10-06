@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- `python -m eyggnx.stability`: long-run, multi-seed stability runs with structural invariant checks (finite energy, positions, resource capacity, population accounting, unique ids) and per-seed summaries. `tests/test_stability.py` runs 2 seeds × 3,000 ticks.
+- CI runs the test suite on Windows and macOS (Python 3.12) as well as Linux (3.11–3.13); a missing golden digest is reported with its value in the skip message.
+
 ### Documentation
 - Adopted the 12 architecture invariants from the Opus GENESIS audit as project policy (`docs/architecture/INVARIANTS.md`), with current compliance under simulation contract 1. No code or trajectory change.
 - ROADMAP: marked Linux / Windows golden digests as done.
