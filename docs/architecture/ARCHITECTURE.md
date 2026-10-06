@@ -41,6 +41,7 @@ The exact order and its consequences are specified in `docs/specifications/ORGAN
 - `world.py` — 2Dトーラス世界、資源パッチ（再生パッチとデトリタス）、空間グリッドによる知覚
 - `simulation.py` — tick（決定 → 行動 → 摂食の解決）、乱数系統、出生、死、観測フック、`state_digest()`
 - `stability.py` — 長時間・複数 seed の安定性実行と構造的不変条件のチェック
+- `nutrients.py` — 外部データの餌（ディレクトリ直下のファイルを読むだけで基質にする）
 - `config.py` — `SimulationConfig`（全定数とその既定値）、`ExperimentSpec`、`SIMULATION_CONTRACT`
 - `validation.py` — 公開入力の境界チェック（乱数を消費しない）
 - `recorder.py` — 観測専用レコーダー（時系列・系統イベント）

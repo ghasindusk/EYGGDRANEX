@@ -27,12 +27,12 @@
 | # | 状態 | 根拠 |
 |---|---|---|
 | 1 | ✅ 満たす | 繁殖条件は生存条件と `energy >= reproduction_threshold` のみ（`ORGANISM_SPEC.md`） |
-| 2 | ✅ 満たす | 種・役割のラベルはコードに存在しない。パッチとデトリタスは同じ基質で、性質（`regen` の符号）が違うだけである |
+| 2 | ✅ 満たす | 種・役割のラベルはコードに存在しない。パッチ・デトリタス・外部データの餌は同じ基質で、性質（`regen` の符号）が違うだけである。外部データの栄養価もファイル名や形式ではなくバイト列の情報量で決まる |
 | 3 | ✅ 満たす | 全個体が同じ世界の状態で決定し、取り合いは等分する。`OrderNeutralityTests`（リストの並びを入れ替えても軌跡が同一、取り合いが対称） |
 | 4 | ✅ 満たす | `EnergyLedgerTests`（子への分配、パッチ減少量 = 摂食量、個体のエネルギー収支）。デトリタスは死亡時のエネルギーの移転として扱う |
 | 5 | ✅ 満たす（係数は仮説） | 代謝と移動コストは物理に移し、`sensor_range`・`max_age`・`speed` には代償がある（`TradeOffTests`）。20 seed × 30,000 tick で境界への張り付きなし（`experiments/genesis/README.md`）。係数は物理的に正当化された値ではない |
 | 6 | ✅ 満たす | `state_digest()`・プラットフォーム別 golden digest（`tests/golden_digests.json`）。OS 間の一致は主張しない |
-| 7 | ✅ 満たす | 機構ごとの乱数系統（`world`, `founders`, `movement`, `placement`, `mutation`）。`StreamIsolationTests` |
+| 7 | ✅ 満たす | 機構ごとの乱数系統（`world`, `founders`, `movement`, `placement`, `mutation`）。外部データの餌は乱数を使わず内容のハッシュで配置する。`StreamIsolationTests`、`test_nutrients_do_not_shift_other_mechanisms` |
 | 8 | ✅ 満たす | `test_recording_does_not_change_the_trajectory` |
 | 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction`、`tests/test_stability.py` |
 | 10 | ✅ 満たす | ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけである。制御器のパラメータは遺伝子だが、生涯の間に書き換わらない。学習・文化の層はまだない |

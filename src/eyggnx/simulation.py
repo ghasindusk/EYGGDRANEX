@@ -15,6 +15,7 @@ from typing import Protocol
 from .config import SimulationConfig
 from .controller import DEFAULT_CONTROLLER, Controller
 from .genome import Genome
+from .nutrients import load_nutrients
 from .organism import Organism, basal_metabolism
 from .validation import non_negative_int, positive_finite
 from .world import ResourcePatch, World
@@ -82,6 +83,9 @@ class Simulation:
         self.config = config
         self.rngs = {name: derive_stream(seed, name) for name in RNG_STREAMS}
         self.world = World(width, height, self.rngs["world"], config.resource_patches, config=config)
+        nutrients, self.nutrient_manifest = load_nutrients(config)
+        for patch in nutrients:
+            self.world.add_resource(patch)
         self.controller: Controller = DEFAULT_CONTROLLER
         self.tick_index = 0
         self.births_total = 0

@@ -51,6 +51,14 @@ v0.1.1-alpha は、公開済み v0.1.0-alpha を基準点として Astra / Opus 
 
 `main` の開発版は simulation contract 2 で動く（contract 1 の軌跡はタグ `v0.1.1-alpha` から再現できる）。順序に依存しない tick、機構ごとの乱数系統、代償のある形質、対数正規・反射型の突然変異、遺伝する採餌制御器、空間グリッド、デトリタスを導入した。詳細は `CHANGELOG.md` と `docs/architecture/INVARIANTS.md`。
 
+### 外部データを餌にする
+
+```bash
+eyggnx --nutrient-dir path/to/data --steps 3000 --format record
+```
+
+指定したディレクトリ直下のファイルが、世界に置かれる有限の餌になります。ファイルは読むだけで、実行や解釈はしません。栄養価はデータの情報量（圧縮後のサイズ）で決まり、ファイル名や形式は使いません。詳細は `docs/specifications/ECOSYSTEM_SPEC.md`。
+
 ### Current limitations
 
 - 採餌制御器のパラメータは遺伝するが、スコア関数の形は固定である（`docs/specifications/ORGANISM_SPEC.md`）。

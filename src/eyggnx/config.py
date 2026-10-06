@@ -57,6 +57,13 @@ class SimulationConfig:
     # non-renewable patch (0 = off). Starved organisms have no energy left to leave.
     detritus_fraction: float = 0.0
     detritus_decay: float = 0.05  # energy lost per tick by a detritus patch
+    # External data nutrients (see eyggnx.nutrients): files directly in this directory become
+    # non-renewable food patches. None = off. Only the bytes are read; nothing is executed.
+    nutrient_dir: str | None = None
+    nutrient_energy_per_byte: float = 0.01  # energy per byte of zlib-compressed data
+    nutrient_max_energy: float = 200.0  # cap per file
+    nutrient_max_files: int = 1000
+    nutrient_max_bytes: int = 1_000_000  # bytes read from each file
     # Experiment control: False = fixed-genome control, children copy the parent genome exactly
     # (founders still receive their one initial mutation). Changes the trajectory by design.
     mutate_offspring: bool = True
@@ -78,6 +85,12 @@ class SimulationConfig:
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
                 raise ValueError(f"{name} must be finite and >= 0, got {value}")
+        if self.nutrient_dir is not None and not isinstance(self.nutrient_dir, str):
+            raise TypeError("nutrient_dir must be a path string or None")
+        positive_finite("nutrient_energy_per_byte", self.nutrient_energy_per_byte)
+        positive_finite("nutrient_max_energy", self.nutrient_max_energy)
+        non_negative_int("nutrient_max_files", self.nutrient_max_files)
+        non_negative_int("nutrient_max_bytes", self.nutrient_max_bytes)
         if not (isinstance(self.detritus_fraction, (int, float)) and 0.0 <= self.detritus_fraction <= 1.0):
             raise ValueError(f"detritus_fraction must be in [0, 1], got {self.detritus_fraction}")
         if not isinstance(self.mutate_offspring, bool):

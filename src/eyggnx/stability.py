@@ -21,6 +21,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import json
 import math
 from statistics import fmean, median, pstdev
@@ -127,10 +128,13 @@ def main() -> None:
     p.add_argument("--population", type=int, default=60)
     p.add_argument("--check-every", type=int, default=100)
     p.add_argument("--config", metavar="PATH", help="experiment JSON whose model/world config is used")
+    p.add_argument("--nutrient-dir", metavar="DIR", help="use the files directly in DIR as food")
     p.add_argument("--per-seed", action="store_true", help="include every per-seed result")
     args = p.parse_args()
     try:
         config = load_experiment(args.config).config if args.config else SimulationConfig()
+        if args.nutrient_dir is not None:
+            config = replace(config, nutrient_dir=args.nutrient_dir)
         runs = [run_seed(s, args.ticks, args.population, config=config, check_every=args.check_every)
                 for s in parse_seeds(args.seeds)]
     except ValueError as exc:

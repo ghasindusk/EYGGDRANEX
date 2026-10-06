@@ -19,8 +19,9 @@ class ResourcePatch:
     """An ingestible substrate: anything at a position holding energy.
 
     Renewable patches have ``regen > 0``; detritus left by a dead organism is the same
-    substrate with ``regen < 0`` (it decays) and is removed once it is empty. There is
-    no kind label: what a substrate is follows from its properties.
+    substrate with ``regen < 0`` (it decays), and external data nutrients have
+    ``regen == 0`` (finite, stable). Non-renewable substrates are removed once empty.
+    There is no kind label: what a substrate is follows from its properties.
     """
 
     x: float
@@ -141,5 +142,5 @@ class World:
     def tick(self) -> None:
         for resource in self._resources:
             resource.tick()
-        if any(r.regen < 0.0 and r.energy <= 0.0 for r in self._resources):
-            self.resources = [r for r in self._resources if not (r.regen < 0.0 and r.energy <= 0.0)]
+        if any(r.regen <= 0.0 and r.energy <= 0.0 for r in self._resources):
+            self.resources = [r for r in self._resources if not (r.regen <= 0.0 and r.energy <= 0.0)]

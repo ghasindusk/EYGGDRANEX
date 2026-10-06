@@ -36,6 +36,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--format", choices=("snapshot", "record"), default="snapshot",
                    help="'snapshot' prints the final Snapshot (legacy output); "
                         "'record' prints a versioned run record with seed, config and provenance")
+    p.add_argument("--nutrient-dir", metavar="DIR",
+                   help="use the files directly in DIR as food (bytes are only read, never executed)")
     p.add_argument("--record-dir", metavar="DIR",
                    help="write timeseries.jsonl and events.jsonl (lineage) into DIR; does not change the run")
     p.add_argument("--record-every", type=_non_negative_int, default=1, metavar="N",
@@ -46,6 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
 def resolve_spec(args: argparse.Namespace) -> ExperimentSpec:
     spec = load_experiment(args.config) if args.config else ExperimentSpec()
     overrides = {k: getattr(args, k) for k in ("steps", "seed", "population") if getattr(args, k) is not None}
+    if args.nutrient_dir is not None:
+        overrides["config"] = replace(spec.config, nutrient_dir=args.nutrient_dir)
     return replace(spec, **overrides)
 
 

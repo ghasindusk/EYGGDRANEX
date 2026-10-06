@@ -57,7 +57,9 @@
 - [ ] 3D visualization
 
 ## Phase 6 — OPEN BIOSPHERE
-- [ ] external data nutrients
+- [x] external data nutrients — static files as non-renewable food, energy = compressed size (`--nutrient-dir`)
+- [ ] data nutrients with chemistry (byte distribution as composition, needs the energy vector)
+- [ ] data that arrives over time (new files as new food during a run)
 - [ ] distributed simulation
 - [ ] persistent worlds
 - [ ] network organisms
