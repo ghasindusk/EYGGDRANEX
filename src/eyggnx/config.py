@@ -61,7 +61,14 @@ class SimulationConfig:
     # non-renewable food patches. None = off. Only the bytes are read; nothing is executed.
     nutrient_dir: str | None = None
     nutrient_energy_per_byte: float = 0.01  # energy per byte of zlib-compressed data
-    nutrient_max_energy: float = 200.0  # cap per file
+    nutrient_max_energy: float = 200.0  # cap per patch (a whole file, or one chunk)
+    # 0 = one patch per file; otherwise each file is split into chunks of this many bytes,
+    # each its own patch with its own energy and content-derived position.
+    nutrient_chunk_bytes: int = 0
+    # 0 = all energy is exposed at once; otherwise a nutrient exposes at most
+    # nutrient_release_capacity and refills it by this much per tick from its finite supply.
+    nutrient_release_rate: float = 0.0
+    nutrient_release_capacity: float = 30.0
     nutrient_max_files: int = 1000
     nutrient_max_bytes: int = 1_000_000  # bytes read from each file
     # Experiment control: False = fixed-genome control, children copy the parent genome exactly
@@ -91,6 +98,11 @@ class SimulationConfig:
         positive_finite("nutrient_max_energy", self.nutrient_max_energy)
         non_negative_int("nutrient_max_files", self.nutrient_max_files)
         non_negative_int("nutrient_max_bytes", self.nutrient_max_bytes)
+        non_negative_int("nutrient_chunk_bytes", self.nutrient_chunk_bytes)
+        rate = self.nutrient_release_rate
+        if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate) or rate < 0:
+            raise ValueError(f"nutrient_release_rate must be finite and >= 0, got {rate}")
+        positive_finite("nutrient_release_capacity", self.nutrient_release_capacity)
         if not (isinstance(self.detritus_fraction, (int, float)) and 0.0 <= self.detritus_fraction <= 1.0):
             raise ValueError(f"detritus_fraction must be in [0, 1], got {self.detritus_fraction}")
         if not isinstance(self.mutate_offspring, bool):

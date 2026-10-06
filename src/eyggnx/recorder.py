@@ -64,6 +64,11 @@ def population_metrics(sim: Simulation) -> dict[str, Any]:
         "max_generation_living": max((o.generation for o in organisms), default=None),
         "mean_energy": fmean(o.energy for o in organisms) if organisms else None,
         "resource_energy_total": math.fsum(r.energy for r in sim.world.resources),
+        # Energy that will not come back once eaten: exposed energy of non-renewable
+        # substrates plus whatever is left in finite reservoirs.
+        "finite_substrate_energy": math.fsum(
+            r.energy + (r.reservoir or 0.0) for r in sim.world.resources
+            if r.regen <= 0.0 or r.reservoir is not None),
         "genes": gene_metrics(organisms),
     }
 
