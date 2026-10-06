@@ -20,8 +20,12 @@ class ResourcePatch:
 
     Renewable patches have ``regen > 0``; detritus left by a dead organism is the same
     substrate with ``regen < 0`` (it decays), and external data nutrients have
-    ``regen == 0`` (finite, stable). Non-renewable substrates are removed once empty.
-    There is no kind label: what a substrate is follows from its properties.
+    ``regen == 0`` (finite, stable). A substrate with a ``reservoir`` has a finite supply
+    behind it: ``regen`` moves energy from the reservoir to the exposed ``energy`` (up to
+    ``capacity``) until the reservoir is empty, so it releases a finite amount slowly.
+    ``reservoir is None`` means no such limit. Non-renewable substrates and substrates
+    with an exhausted reservoir are removed once empty. There is no kind label: what a
+    substrate is follows from its properties.
     """
 
     x: float
@@ -29,9 +33,22 @@ class ResourcePatch:
     energy: float
     capacity: float
     regen: float
+    reservoir: float | None = None
 
     def tick(self) -> None:
-        self.energy = max(0.0, min(self.capacity, self.energy + self.regen))
+        if self.reservoir is None:
+            self.energy = max(0.0, min(self.capacity, self.energy + self.regen))
+            return
+        moved = max(0.0, min(self.regen, self.reservoir, self.capacity - self.energy))
+        self.energy += moved
+        self.reservoir -= moved
+
+    @property
+    def exhausted(self) -> bool:
+        """Empty and nothing left to replenish it."""
+        if self.energy > 0.0:
+            return False
+        return self.regen <= 0.0 or (self.reservoir is not None and self.reservoir <= 0.0)
 
 
 class World:
@@ -142,5 +159,5 @@ class World:
     def tick(self) -> None:
         for resource in self._resources:
             resource.tick()
-        if any(r.regen <= 0.0 and r.energy <= 0.0 for r in self._resources):
-            self.resources = [r for r in self._resources if not (r.regen <= 0.0 and r.energy <= 0.0)]
+        if any(r.exhausted for r in self._resources):
+            self.resources = [r for r in self._resources if not r.exhausted]

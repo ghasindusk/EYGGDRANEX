@@ -199,7 +199,9 @@ class Simulation:
             parts.append(("O", o.oid, o.parent_id, o.generation, o.age,
                           o.x.hex(), o.y.hex(), o.energy.hex(), genes))
         for r in self.world.resources:
-            parts.append(("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex()))
+            part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
+            # Appended only when set, so digests of runs without reservoirs are unchanged.
+            parts.append(part if r.reservoir is None else part + (r.reservoir.hex(),))
         parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
         for name in RNG_STREAMS:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))

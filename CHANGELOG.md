@@ -20,6 +20,11 @@
 - `eyggnx.controller`: `Controller` protocol, `Intent`, `ForagingController`.
 - Spatial grid in `World` for perception queries (identical results to a full scan, tested).
 - External data nutrients (`eyggnx.nutrients`, `--nutrient-dir DIR`, `SimulationConfig.nutrient_dir`): regular files directly in a directory become non-renewable food patches. Bytes are only read (never executed); energy is the zlib-compressed size × `nutrient_energy_per_byte`, capped by `nutrient_max_energy`; the position comes from the content's SHA-256, so no random numbers are drawn. The manifest (name, size, bytes read, SHA-256, energy) and its digest are stored in the run record. Off by default; trajectories without it are unchanged.
+- Nutrient chunking and slow release: `nutrient_chunk_bytes > 0` splits each file into chunks that become separate patches (energy, cap and position per chunk); `nutrient_release_rate > 0` keeps a nutrient's energy in a finite `ResourcePatch.reservoir` and exposes at most `nutrient_release_capacity`, refilled at that rate per tick. Both are off by default, and nutrient runs without them are bit-identical to before (the reservoir enters `state_digest()` only when set). Recorder timeseries gain `finite_substrate_energy`.
+- `python -m eyggnx` runs the CLI.
+
+### Changed
+- External data nutrients release their energy slowly by default (`nutrient_release_rate = 0.4`, `nutrient_release_capacity = 30`): exposing everything at once produced a boom and crash (`experiments/nutrients/README.md`). `nutrient_release_rate = 0` restores immediate release. Runs without `nutrient_dir` and their golden digests are unchanged.
 - Detritus: with `detritus_fraction > 0`, an organism dying of age leaves part of its energy as a decaying, non-renewable patch (`configs/detritus_genesis.json`). Off by default.
 - `python -m eyggnx.stability`: long-run, multi-seed stability runs with structural invariant checks (finite energy, positions, resource capacity, population accounting, unique ids) and per-seed summaries; `--config` selects a model. `tests/test_stability.py` runs 2 seeds × 3,000 ticks.
 - CI runs the test suite on Windows and macOS (Python 3.12) as well as Linux (3.11–3.13); a missing golden digest is reported with its value in the skip message.

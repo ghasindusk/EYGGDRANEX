@@ -20,7 +20,9 @@ import zlib
 from eyggnx import cli
 from eyggnx.config import SimulationConfig
 from eyggnx.nutrients import load_nutrients, nutrient_energy
+from eyggnx.recorder import population_metrics
 from eyggnx.simulation import Simulation
+from eyggnx.world import ResourcePatch
 
 
 class NutrientDirTestCase(unittest.TestCase):
@@ -75,7 +77,7 @@ class LoadingTests(NutrientDirTestCase):
     def test_patches_are_finite_and_inside_the_world(self):
         for i in range(20):
             self.write(f"f{i}", os.urandom(50 + i))
-        patches, _ = load_nutrients(self.config(width=30.0, height=20.0))
+        patches, _ = load_nutrients(self.config(width=30.0, height=20.0, nutrient_release_rate=0.0))
         for p in patches:
             self.assertTrue(0.0 <= p.x < 30.0 and 0.0 <= p.y < 20.0)
             self.assertEqual((p.regen, p.capacity), (0.0, p.energy))
@@ -118,7 +120,7 @@ class SimulationTests(NutrientDirTestCase):
         a.run(1500)
         b.run(1500)
         self.assertEqual(a.state_digest(), b.state_digest())
-        self.assertTrue(all(r.energy > 0.0 or r.regen > 0.0 for r in a.world.resources))
+        self.assertTrue(all(not r.exhausted for r in a.world.resources))
 
     def test_run_record_contains_manifest(self):
         self.write("a", b"hello world " * 20)
@@ -130,6 +132,77 @@ class SimulationTests(NutrientDirTestCase):
         self.assertEqual(record["experiment"]["config"]["nutrient_dir"], str(self.dir))
         self.assertEqual([f["name"] for f in record["nutrients"]["files"]], ["a"])
         self.assertEqual(len(record["nutrients"]["digest"]), 64)
+
+
+class ChunkTests(NutrientDirTestCase):
+    def test_large_file_is_spread_over_chunks(self):
+        data = os.urandom(10_000)
+        self.write("big", data)
+        patches, manifest = load_nutrients(self.config(nutrient_chunk_bytes=4000, nutrient_release_rate=0.0))
+        self.assertEqual(len(patches), 3)
+        self.assertEqual(manifest["files"][0]["chunks"], 3)
+        cfg = SimulationConfig()
+        expected = [nutrient_energy(data[i:i + 4000], cfg) for i in (0, 4000, 8000)]
+        self.assertEqual([p.energy for p in patches], expected)
+        self.assertAlmostEqual(manifest["files"][0]["energy"], sum(expected))
+        self.assertEqual(len({(p.x, p.y) for p in patches}), 3)
+
+    def test_chunking_off_keeps_one_patch_per_file(self):
+        self.write("big", os.urandom(10_000))
+        patches, manifest = load_nutrients(self.config())
+        self.assertEqual(len(patches), 1)
+        self.assertNotIn("chunks", manifest["files"][0])
+
+
+class ReleaseTests(NutrientDirTestCase):
+    def test_release_exposes_a_capacity_and_keeps_the_rest_in_reserve(self):
+        self.write("a", os.urandom(5_000))
+        total = load_nutrients(self.config(nutrient_release_rate=0.0))[0][0].energy
+        (p,), _ = load_nutrients(self.config(nutrient_release_rate=0.5, nutrient_release_capacity=10.0))
+        self.assertEqual((p.energy, p.capacity, p.regen), (10.0, 10.0, 0.5))
+        self.assertAlmostEqual(p.energy + p.reservoir, total)
+
+    def test_reservoir_refills_until_empty_without_creating_energy(self):
+        p = ResourcePatch(0.0, 0.0, 0.0, 2.0, 0.5, 1.2)
+        seen = []
+        for _ in range(5):
+            p.tick()
+            seen.append((p.energy, p.reservoir))
+        self.assertEqual(seen[:3], [(0.5, 0.7), (1.0, 0.19999999999999996), (1.2, 0.0)])
+        self.assertEqual(seen[-1], (1.2, 0.0))
+        self.assertFalse(p.exhausted)
+        p.energy = 0.0
+        self.assertTrue(p.exhausted)
+
+    def test_reservoir_respects_capacity(self):
+        p = ResourcePatch(0.0, 0.0, 1.9, 2.0, 0.5, 5.0)
+        p.tick()
+        self.assertEqual((p.energy, p.reservoir), (2.0, 4.9))
+
+    def test_released_nutrients_are_eaten_up_and_removed_deterministically(self):
+        for i in range(6):
+            self.write(f"f{i}", os.urandom(800))
+        cfg = self.config(resource_patches=3, nutrient_release_rate=0.3, nutrient_release_capacity=3.0)
+        a, b = (Simulation(seed=8, population=40, config=cfg) for _ in range(2))
+        start = population_metrics(a)["finite_substrate_energy"]
+        self.assertGreater(start, 0.0)
+        a.run(800)
+        b.run(800)
+        self.assertEqual(a.state_digest(), b.state_digest())
+        self.assertLess(population_metrics(a)["finite_substrate_energy"], start)
+        self.assertTrue(all(not r.exhausted for r in a.world.resources))
+
+    def test_slow_release_is_the_default_and_immediate_release_remains_available(self):
+        self.write("a", os.urandom(5_000))
+        (slow,), _ = load_nutrients(self.config())
+        (fast,), _ = load_nutrients(self.config(nutrient_release_rate=0.0))
+        self.assertEqual((slow.regen, slow.capacity), (0.4, 30.0))
+        self.assertAlmostEqual(slow.energy + slow.reservoir, fast.energy)
+        self.assertEqual((fast.regen, fast.reservoir), (0.0, None))
+
+    def test_negative_release_rate_is_rejected(self):
+        with self.assertRaises(ValueError):
+            SimulationConfig(nutrient_release_rate=-0.1)
 
 
 if __name__ == "__main__":
