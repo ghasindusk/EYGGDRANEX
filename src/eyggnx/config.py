@@ -115,12 +115,13 @@ class SimulationConfig:
     # evolve are weak (*_weak_* factors), and each birth fails with evolution_drop_probability
     # (the energy given to the child is lost). Founders have no parent and reproduce normally.
     evolution_reward: bool = False
-    evolution_strong_metabolism: float = 0.9
-    evolution_weak_metabolism: float = 1.1
-    evolution_strong_mutation: float = 1.2
-    evolution_weak_mutation: float = 0.8
+    # Hypothesis: strength chosen in experiments/nutrients (stronger than first tried, 0.9/1.2/1.1/0.8/0.25).
+    evolution_strong_metabolism: float = 0.8
+    evolution_weak_metabolism: float = 1.2
+    evolution_strong_mutation: float = 1.4
+    evolution_weak_mutation: float = 0.6
     evolution_bonus_offspring: int = 1
-    evolution_drop_probability: float = 0.25
+    evolution_drop_probability: float = 0.4
 
     def __post_init__(self) -> None:
         positive_finite("width", self.width)

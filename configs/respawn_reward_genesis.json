@@ -1,0 +1,8 @@
+{
+  "$comment": "Experimental: data-only world (pass --nutrient-dir DIR). Eaten-up nutrients come back after 100 ticks, half in place and half far away; evolution reward on (breaks invariants #1 and #5 by design).",
+  "seed": 42,
+  "population": 60,
+  "world": {"width": 100.0, "height": 100.0, "resource_patches": 0},
+  "model": {"nutrient_respawn_delay": 100, "evolution_reward": true},
+  "steps": 30000
+}

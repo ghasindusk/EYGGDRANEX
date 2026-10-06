@@ -36,7 +36,7 @@ class EvolutionRewardTests(unittest.TestCase):
         self.assertEqual(len(children), 2)
         self.assertEqual(sim.evolved_births, 1)
         for c in children:
-            self.assertEqual(c.metabolism_factor, 0.9)
+            self.assertEqual(c.metabolism_factor, sim.config.evolution_strong_metabolism)
             self.assertAlmostEqual(c.parent_intake_rate, 100.0 / 11)
         f = Genome().offspring_fraction
         # Children get f*E and f*(1-f)*E; with the parent's (1-f)^2*E the total is E = first / f.
@@ -54,7 +54,7 @@ class EvolutionRewardTests(unittest.TestCase):
         self.assertGreater(sim.failed_births, 0)
         self.assertGreater(len(children), 0)
         for c in children:
-            self.assertEqual(c.metabolism_factor, 1.1)
+            self.assertEqual(c.metabolism_factor, sim.config.evolution_weak_metabolism)
         # A failed birth still costs the parent its offspring share.
         for p in parents:
             self.assertLess(p.energy, 100.0 * (1 - Genome().offspring_fraction) + 1e-9)
