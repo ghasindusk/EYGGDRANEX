@@ -1,48 +1,36 @@
 # EYGGDRANEX Project Status
 
-**Version:** v0.1.1-alpha — GENESIS Review Integration  
-**Date:** 2026-09-25  
-**Author:** SHAR-K  
-**Repository:** https://github.com/ghasindusk/EYGGDRANEX  
-**Release:** https://github.com/ghasindusk/EYGGDRANEX/releases/tag/v0.1.1-alpha
+**Version:** v0.1.2-alpha — Simulation Contract 2 and External Data Nutrients
+**Date:** 2026-10-07
+**Author:** SHAR-K
+**Repository:** https://github.com/ghasindusk/EYGGDRANEX
+**Release:** https://github.com/ghasindusk/EYGGDRANEX/releases/tag/v0.1.2-alpha
 
 ## Completion
 
-**GENESIS review integration: complete / published**
+**Simulation contract 2 and external data nutrients: merged / release in preparation**
 
 ## Completed
 
-- Public GitHub repository is live
-- v0.1.0-alpha baseline remains immutable
-- Independent Astra and Opus audits completed
-- ACCEPT-NOW findings integrated through PR #1
-- Release metadata finalized through PR #2
-- Main-branch CI passes on Python 3.11 / 3.12 / 3.13
-- Package wheel build/install smoke test passes
-- Per-platform golden digests recorded for Linux and Windows
-- Simulation contract 1 remains the active contract
-- Config/run-record/recorder/control tooling added
-- Project-specific Issue labels are configured
-- Annotated tag `v0.1.1-alpha` is fixed to commit `94710f70bf3a5d4adb8db779c2fbdde633bdaafb`
-- Public GitHub prerelease **EYGGDRANEX v0.1.1-alpha — GENESIS Review Integration** is published
-- One-shot tag/release workflows were removed after use
-
-## Development on `main` (unreleased)
-
-- Simulation contract 2: order-neutral tick, named RNG streams, trade-off costs, log-normal reflecting mutation, continuous `max_age`, heritable foraging controller, spatial grid, optional detritus
-- Long-run stability runs (`python -m eyggnx.stability`) and cross-platform CI (Linux / Windows / macOS)
+- Simulation contract 2 is the active contract on `main` (PR #3): order-neutral tick, named RNG streams, trade-off costs, log-normal reflecting mutation, continuous `max_age`, heritable foraging controller, spatial grid, optional detritus
+- External data nutrients (PRs #3–#6): read-only file food, content-derived attributes, slow release, splitting of large files, periodic regrowth, skipping of unreadable files
 - Architecture invariants adopted as project policy (`docs/architecture/INVARIANTS.md`)
+- Long-run stability runs (`python -m eyggnx.stability`)
+- CI on Linux (3.11–3.13), Windows and macOS (3.12) with per-platform golden digests
+- Package metadata bumped to 0.1.2a1; CHANGELOG and CITATION updated
+- Manual release workflow (`.github/workflows/release.yml`) that tags only a `main` commit with a successful CI run
+- `v0.1.0-alpha` and `v0.1.1-alpha` tags unchanged; contract 1 is reproducible from `v0.1.1-alpha`
 
 ## Release status
 
-- [x] PR #1 merged
-- [x] PR #2 release-prep merged
-- [x] main CI green
-- [x] package metadata bumped to 0.1.1a1
+- [x] PR #3–#6 merged
+- [ ] Release-prep PR merged
+- [ ] main CI green on the release commit
+- [x] package metadata bumped to 0.1.2a1
 - [x] CHANGELOG finalized
 - [x] CITATION metadata updated
-- [x] annotated tag created and verified
-- [x] GitHub prerelease published
+- [ ] annotated tag created and verified
+- [ ] GitHub prerelease published
 
 ## Remaining repository administration
 

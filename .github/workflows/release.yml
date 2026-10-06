@@ -1,0 +1,62 @@
+name: Release
+
+# Manual, reusable release: tags a fixed commit only if a successful CI run on `main`
+# exists for exactly that commit, then publishes a GitHub prerelease from its notes file.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name, e.g. v0.1.2-alpha"
+        required: true
+      sha:
+        description: "Full commit SHA to tag (must be on main)"
+        required: true
+      title:
+        description: "Release title"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify the commit and its CI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "sha must be a full 40-character SHA"; exit 1; }
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$ ]] || { echo "invalid tag name"; exit 1; }
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "$SHA is not on main"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists; refusing to move it."; exit 1
+          fi
+          git cat-file -e "$SHA:RELEASE_NOTES_${TAG}.md" || { echo "RELEASE_NOTES_${TAG}.md is missing at $SHA"; exit 1; }
+          runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&branch=main&status=success" --jq '.total_count')"
+          test "$runs" -gt 0 || { echo "no successful CI run on main for $SHA"; exit 1; }
+
+      - name: Create the annotated tag and the prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          SHA: ${{ inputs.sha }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git show "$SHA:RELEASE_NOTES_${TAG}.md" > "$RUNNER_TEMP/notes.md"
+          git tag -a "$TAG" "$SHA" -m "$TITLE"
+          git push origin "refs/tags/$TAG"
+          gh release create "$TAG" --verify-tag --prerelease --title "$TITLE" --notes-file "$RUNNER_TEMP/notes.md"
