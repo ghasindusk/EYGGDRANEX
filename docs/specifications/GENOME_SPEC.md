@@ -1,35 +1,48 @@
-# Genome Specification — v0.1
+# Genome Specification — v0.2 (simulation contract 2)
 
 Genomeは「種名」や「進化先」ではなく、個体の生命活動を規定する連続値パラメータ群として扱う。
 
-## v0.1 genes
+## Gene registry
 
-- `speed` — 1 tickあたりの最大移動量
-- `sensor_range` — 資源を知覚できる距離
-- `metabolism` — 生存の基礎エネルギー消費
-- `movement_cost` — 移動距離あたりのエネルギー消費
-- `reproduction_threshold` — 生殖開始エネルギー
-- `offspring_fraction` — 親から子へ分配するエネルギー割合
-- `mutation_scale` — 突然変異の相対標準偏差（下記参照）。この値自身も変異する
-- `max_age` — 最大寿命（整数）
+遺伝子は `eyggnx.genome.GENES`（名前・既定値・境界）に1行ずつ定義する。この表の順序が突然変異で乱数を引く順序であり、新しい遺伝子は末尾に追加する。
+
+| 遺伝子 | 既定値 | 境界 | 意味 | 代償（トレードオフ） |
+|---|---|---|---|---|
+| `speed` | 1.0 | 0.15–4.0 | 1 tick あたりの最大移動量 | 移動コストが `speed` に比例する（抵抗） |
+| `sensor_range` | 8.0 | 1.0–30.0 | 資源を知覚できる距離 | 基礎代謝に `sensor_cost × sensor_range` |
+| `reproduction_threshold` | 28.0 | 12–120 | 生殖を始めるエネルギー | 高いほど生殖が遅れる |
+| `offspring_fraction` | 0.42 | 0.20–0.70 | 子へ渡すエネルギーの割合 | 親の残りエネルギーが減る |
+| `mutation_scale` | 0.06 | 0.005–0.25 | 対数空間での変異の標準偏差。自身も変異する | 大きいほど子の多くが不利になる |
+| `max_age` | 420.0 | 80–2000 | 寿命（tick、連続値） | 基礎代謝に `longevity_cost × max_age` |
+| `distance_aversion` | 1.0 | 0.01–100 | 制御器: パッチの評価 `energy / (1 + aversion × distance)` | 近場の貧しいパッチか、遠くの豊かなパッチか |
+| `wander_step` | 0.625 | 0.05–1.0 | 制御器: 何も見えないときの歩幅（`speed` に対する割合） | 歩くほど移動コストがかかる |
+
+### 遺伝子ではなく物理であるもの
+
+contract 1 では `metabolism` と `movement_cost` が遺伝子で、個体が自分の物理定数を「選べる」状態だった（下げることに代償がなく、下限に張り付いた）。contract 2 ではこれらを `SimulationConfig` の物理に移した。
+
+- 基礎代謝 = `base_metabolism`（0.10）+ `sensor_cost`（0.006）× `sensor_range` + `longevity_cost`（0.00017）× `max_age`。既定の Genome では約 0.22 で、contract 1 の既定値と同じ水準である。
+- 移動コスト = 移動距離 × `movement_cost`（0.04）× `speed`。
+
+これらの係数は「生存に役立つ形質には代償がある」（不変条件 #5）を満たすための最初の仮説であり、物理的に正当化された値ではない。値を変えることはモデルの変更であり、そのように報告すること。
 
 ## Mutation
 
-子個体生成時、各遺伝子 `v` は親の `mutation_scale = s` を使って独立に次の変異を受ける（遺伝子の順序は `Genome` のフィールド順で、乱数の消費順も固定）。
+子個体生成時、各遺伝子 `v` は親の `mutation_scale = s` を使って独立に次の変異を受ける。
 
 ```text
-v' = clamp(v × (1 + N(0, s)), lo, hi)
+log v' = reflect(log v + N(0, s), log lo, log hi)
 ```
 
-- **乗法的（相対的）ガウス変異。** `s` は絶対値ではなく、値に対する相対標準偏差である。
+- **対数正規変異。** 対数空間で偏りがなく、contract 1 の `v × (1 + N(0, s))` にあった下向きの中立ドリフトはない（1回の変異での対数変化の中央値は 0）。
+- **反射境界。** 境界を越えた分は境界で折り返す。clamp のように境界へ値が溜まらない。
 - **`mutation_scale` は自己適応的。** `s` 自身も同じ式で変異する。
-- **clamp 範囲**は `eyggnx.genome.GENE_BOUNDS` にある。すべての run record に記録される。
-- **`max_age`** は変異後に整数へ丸める。値が小さく `s` も小さいと、多くの変異が丸めで元の値に戻る（例: 80 / 0.005 では約 89% が変化なし）。
-- **創始個体**は既定 Genome から1回だけ変異して作られる。`SimulationConfig(mutate_offspring=False)` にすると、その後の子は親 Genome をそのままコピーする（固定ゲノム対照）。
+- **`max_age` は連続値。** contract 1 の整数丸めにより小さな変異が無効になる問題はない。
+- **創始個体**は既定 Genome から1回だけ変異して作られる（`founders` 系統）。`SimulationConfig(mutate_offspring=False)` にすると、その後の子は親 Genome をそのままコピーする（固定ゲノム対照）。
 
 ### 既知の偏り（解釈上の注意）
 
-- **中立ドリフトは下向き。** `E[log(1 + ε)] < 0` と clamp の影響で、選択なしでも遺伝値は下がる。300 世代の変異のみの系統では、`speed` の中央値が 1.0 から約 0.65 まで下がる。形質の減少を「適応」と呼ぶ前に、`python -m eyggnx.controls` の中立ドリフト基準と比較すること。
-- **コストのない遺伝子は clamp 境界へ張り付く。** 現モデルでは `metabolism` を下げる、`max_age` を伸ばす、`sensor_range` を広げることに対価がない。長時間の実行ではこれらが境界へ移動する（例: `metabolism` は 30,000 tick で下限 0.05 に張り付く）。この場合の到達点は環境ではなく境界値が決めている。境界への集中度は recorder の `frac_at_lower` / `frac_at_upper` で観測できる。
+- **長い系統は境界の幾何平均へ寄る。** 選択がなければ、反射境界のもとで遺伝値は対数空間の一様分布に近づく。そのため 300 世代の変異のみの系統では、中央値が境界の幾何平均（例: `speed` は √(0.15 × 4.0) ≈ 0.77、`mutation_scale` は ≈ 0.035）の方向へ移る。50 世代では中央値は初期値からほぼ動かない。形質の変化を「適応」と呼ぶ前に、`python -m eyggnx.controls` の中立ドリフト基準と比較すること。
+- **境界占有率は対数空間で測る。** recorder と controls は、遺伝子の対数範囲の 1% 以内を「境界にいる」とみなす。
 
 固定進化ツリーは持たない。将来は遺伝子追加・削除、可変長Genome、器官発生ルール、遺伝子重複、水平伝播へ拡張する。

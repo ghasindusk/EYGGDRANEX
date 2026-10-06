@@ -20,27 +20,27 @@
 11. **No per-tick LLM.** 言語モデルの層は任意・高レベル・レート制限付きで、決定論的なコアの外に置く。またはその応答を記録してリプレイ可能にする。
 12. **Baseline immutability.** `v0.1.0-alpha` とその軌跡は、タグから再現できる状態を保つ。
 
-## Current compliance (simulation contract 1, v0.1.1-alpha)
+## Current compliance (simulation contract 2)
 
-採用時点で、すべてが満たされているわけではない。満たしていない項目は、既知の逸脱として記録し、simulation contract 2 以降で解消する。
+採用時（contract 1, v0.1.1-alpha）には #3・#5・#7 が満たされていなかった。contract 2 でこの3つを解消した。
 
-| # | 状態 | 根拠 / 逸脱の内容 |
+| # | 状態 | 根拠 |
 |---|---|---|
 | 1 | ✅ 満たす | 繁殖条件は生存条件と `energy >= reproduction_threshold` のみ（`ORGANISM_SPEC.md`） |
-| 2 | ✅ 満たす | 種・役割のラベルはコードに存在しない |
-| 3 | ⚠️ 文書化された例外 | 個体はリスト順に行動し、先頭の個体に採餌の優先権がある。`ORGANISM_SPEC.md` に明記し、`test_list_order_decides_feeding_priority` で固定している。解消は contract 2 の判断（NEEDS-HUMAN） |
-| 4 | ✅ 満たす | `EnergyLedgerTests`（子への分配、パッチ減少量 = 摂食量） |
-| 5 | ⚠️ 既知の逸脱 | `metabolism`・`max_age`・`sensor_range` はコストがなく、clamp 境界へ張り付く（`GENOME_SPEC.md`）。新しい形質を追加するときはこの不変条件を必ず守る |
+| 2 | ✅ 満たす | 種・役割のラベルはコードに存在しない。パッチとデトリタスは同じ基質で、性質（`regen` の符号）が違うだけである |
+| 3 | ✅ 満たす | 全個体が同じ世界の状態で決定し、取り合いは等分する。`OrderNeutralityTests`（リストの並びを入れ替えても軌跡が同一、取り合いが対称） |
+| 4 | ✅ 満たす | `EnergyLedgerTests`（子への分配、パッチ減少量 = 摂食量、個体のエネルギー収支）。デトリタスは死亡時のエネルギーの移転として扱う |
+| 5 | ✅ 満たす（係数は仮説） | 代謝と移動コストは物理に移し、`sensor_range`・`max_age`・`speed` には代償がある（`TradeOffTests`）。20 seed × 30,000 tick で境界への張り付きなし（`experiments/genesis/README.md`）。係数は物理的に正当化された値ではない |
 | 6 | ✅ 満たす | `state_digest()`・プラットフォーム別 golden digest（`tests/golden_digests.json`）。OS 間の一致は主張しない |
-| 7 | ❌ 未達 | 全機構が単一の `random.Random` を共有している。乱数の系統分離は contract 2 の判断（NEEDS-HUMAN） |
+| 7 | ✅ 満たす | 機構ごとの乱数系統（`world`, `founders`, `movement`, `placement`, `mutation`）。`StreamIsolationTests` |
 | 8 | ✅ 満たす | `test_recording_does_not_change_the_trajectory` |
-| 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction` |
-| 10 | ✅ 満たす | ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけである。学習・文化の層はまだない |
+| 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction`、`tests/test_stability.py` |
+| 10 | ✅ 満たす | ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけである。制御器のパラメータは遺伝子だが、生涯の間に書き換わらない。学習・文化の層はまだない |
 | 11 | ✅ 満たす | LLM の層はない |
-| 12 | ✅ 満たす | `v0.1.0-alpha` タグは不変。force-push しない |
+| 12 | ✅ 満たす | `v0.1.0-alpha` / `v0.1.1-alpha` タグは不変。contract 1 の軌跡はタグから再現できる |
 
 ## How to apply
 
 - 新しい機構を追加する PR では、影響する不変条件を挙げ、それを守っていることを示すテストを付ける。
-- ⚠️ / ❌ の項目を悪化させる変更（例: 新しい順序依存、別機構と共有する乱数の追加、コストのない新形質）は受け入れない。
-- ⚠️ / ❌ の項目を解消する変更は軌跡を変えるため、simulation contract の改訂として扱う（CHANGELOG に明記し、golden digest を更新する）。
+- 不変条件を破る変更（例: 新しい順序依存、別機構と共有する乱数、コストのない新形質）は受け入れない。
+- 軌跡を変える変更は simulation contract の改訂として扱う（CHANGELOG に明記し、golden digest を更新する）。

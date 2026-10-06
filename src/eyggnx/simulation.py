@@ -13,10 +13,21 @@ from statistics import fmean
 from typing import Protocol
 
 from .config import SimulationConfig
+from .controller import DEFAULT_CONTROLLER, Controller
 from .genome import Genome
-from .organism import Organism
+from .organism import Organism, basal_metabolism
 from .validation import non_negative_int, positive_finite
-from .world import World
+from .world import ResourcePatch, World
+
+#: Named random streams. Each mechanism draws only from its own stream, so adding or
+#: changing one mechanism never shifts the random numbers another mechanism sees.
+RNG_STREAMS = ("world", "founders", "movement", "placement", "mutation")
+
+
+def derive_stream(seed: int, name: str) -> random.Random:
+    """Independent, platform-stable random stream for ``(seed, name)``."""
+    digest = hashlib.sha256(f"eyggnx:{seed}:{name}".encode()).digest()
+    return random.Random(int.from_bytes(digest, "big"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,10 +51,16 @@ class SimulationObserver(Protocol):
 
 
 class Simulation:
-    """GENESIS simulation, simulation contract 1.
+    """GENESIS simulation, simulation contract 2.
 
     Pass either ``width``/``height`` or a full ``config``; with a config, leave
     ``width`` and ``height`` at their defaults.
+
+    A tick is order-neutral: every organism decides on the same world state, all moves
+    and costs are applied, then contested patches are shared equally among the
+    organisms eating from them. Organisms are kept in id order, and random draws are
+    taken in id order from per-mechanism streams, so permuting ``organisms`` does not
+    change the trajectory.
     """
 
     def __init__(
@@ -63,56 +80,97 @@ class Simulation:
         width, height = config.width, config.height
         self.seed = seed
         self.config = config
-        self.rng = random.Random(seed)
-        self.world = World(width, height, self.rng, config.resource_patches, config=config)
+        self.rngs = {name: derive_stream(seed, name) for name in RNG_STREAMS}
+        self.world = World(width, height, self.rngs["world"], config.resource_patches, config=config)
+        self.controller: Controller = DEFAULT_CONTROLLER
         self.tick_index = 0
         self.births_total = 0
         self.deaths_total = 0
         self.next_id = population
+        #: Energy ingested during the last tick (observability only, not part of the state).
+        self.eaten_last_tick = 0.0
         base = Genome()
-        self.organisms = [
-            Organism(
-                oid=i,
-                x=self.rng.random() * width,
-                y=self.rng.random() * height,
-                energy=self.rng.uniform(*config.founder_energy_range),
-                genome=base.mutate(self.rng),
-            )
-            for i in range(population)
-        ]
+        founders = self.rngs["founders"]
+        self.organisms = []
+        for i in range(population):
+            x, y = founders.random() * width, founders.random() * height
+            energy = founders.uniform(*config.founder_energy_range)
+            self.organisms.append(Organism(oid=i, x=x, y=y, energy=energy, genome=base.mutate(founders)))
         #: Optional observer (see ``eyggnx.recorder``). Observers must not mutate state or
-        #: draw from ``self.rng``; the trajectory is identical with or without one.
+        #: draw from the simulation's random streams; the trajectory is identical with or without one.
         self.observer: SimulationObserver | None = None
 
     def tick(self) -> Snapshot:
         self.tick_index += 1
-        self.world.tick()
+        world = self.world
+        world.tick()
         observer = self.observer
+        self.organisms.sort(key=lambda o: o.oid)
+        organisms = self.organisms
+
+        # Decide on one shared world state, then act.
+        movement = self.rngs["movement"]
+        intents = [self.controller.decide(o, world, movement) for o in organisms]
+        for organism, intent in zip(organisms, intents):
+            organism.act(intent, world)
+        self.eaten_last_tick = self._resolve_feeding(organisms)
 
         births: list[Organism] = []
-        for organism in list(self.organisms):
-            if organism.alive:
-                organism.step(self.world, self.rng)
-                if organism.can_reproduce():
-                    child = organism.reproduce(self.next_id, self.rng, self.world)
-                    births.append(child)
-                    self.next_id += 1
-                    if observer is not None:
-                        observer.on_birth(self.tick_index, child, organism)
+        placement, mutation = self.rngs["placement"], self.rngs["mutation"]
+        for organism in organisms:
+            if organism.can_reproduce():
+                child = organism.reproduce(self.next_id, world, placement, mutation)
+                births.append(child)
+                self.next_id += 1
+                if observer is not None:
+                    observer.on_birth(self.tick_index, child, organism)
 
-        before = len(self.organisms)
-        if observer is not None:
-            for o in self.organisms:
-                if not o.alive:
-                    observer.on_death(self.tick_index, o, "starvation" if o.energy <= 0.0 else "age")
-        self.organisms = [o for o in self.organisms if o.alive]
-        deaths = before - len(self.organisms)
-        self.organisms.extend(births)
+        survivors: list[Organism] = []
+        deaths = 0
+        cfg = self.config
+        for o in organisms:
+            if o.alive:
+                survivors.append(o)
+                continue
+            deaths += 1
+            if observer is not None:
+                observer.on_death(self.tick_index, o, "starvation" if o.energy <= 0.0 else "age")
+            left = o.energy * cfg.detritus_fraction
+            if left > 0.0:
+                world.add_resource(ResourcePatch(o.x, o.y, left, left, -cfg.detritus_decay))
+        self.organisms = survivors + births
         self.births_total += len(births)
         self.deaths_total += deaths
         if observer is not None:
             observer.on_tick(self)
         return self.snapshot()
+
+    def _resolve_feeding(self, organisms: list[Organism]) -> float:
+        """Each organism eats from its nearest patch in contact range; contested patches
+        are shared equally, so no organism has priority. Returns the energy eaten."""
+        world = self.world
+        radius, bite = self.config.contact_radius, self.config.bite_size
+        claims: dict[int, list[Organism]] = {}
+        for o in organisms:
+            found = world.perceive(o.x, o.y, radius)
+            if found:
+                _, index, _ = min(found, key=lambda t: (t[0], t[1]))
+                claims.setdefault(index, []).append(o)
+        eaten_total = 0.0
+        for index in sorted(claims):
+            patch, eaters = world.resources[index], claims[index]
+            demand = bite * len(eaters)
+            if patch.energy >= demand:
+                share = bite
+                patch.energy -= demand
+                eaten_total += demand
+            else:
+                share = patch.energy / len(eaters)
+                eaten_total += patch.energy
+                patch.energy = 0.0
+            for o in eaters:
+                o.energy += share
+        return eaten_total
 
     def run(self, steps: int) -> Snapshot:
         non_negative_int("steps", steps)
@@ -139,7 +197,8 @@ class Simulation:
         for r in self.world.resources:
             parts.append(("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex()))
         parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
-        parts.append(("RNG", repr(self.rng.getstate())))
+        for name in RNG_STREAMS:
+            parts.append(("RNG", name, repr(self.rngs[name].getstate())))
         return hashlib.sha256(repr(parts).encode()).hexdigest()
 
     def snapshot(self) -> Snapshot:
@@ -153,5 +212,5 @@ class Simulation:
             max_generation=max(o.generation for o in self.organisms),
             mean_speed=fmean(o.genome.speed for o in self.organisms),
             mean_sensor_range=fmean(o.genome.sensor_range for o in self.organisms),
-            mean_metabolism=fmean(o.genome.metabolism for o in self.organisms),
+            mean_metabolism=fmean(basal_metabolism(o.genome, self.config) for o in self.organisms),
         )

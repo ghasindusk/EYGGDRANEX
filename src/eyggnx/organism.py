@@ -10,8 +10,16 @@ from dataclasses import dataclass
 import math
 import random
 
+from .config import SimulationConfig
+from .controller import Intent
 from .genome import Genome
 from .world import World
+
+
+def basal_metabolism(genome: Genome, config: SimulationConfig) -> float:
+    """Energy paid every tick to stay alive. Wider senses and longer life cost energy."""
+    return (config.base_metabolism + config.sensor_cost * genome.sensor_range
+            + config.longevity_cost * genome.max_age)
 
 
 @dataclass(slots=True)
@@ -29,43 +37,22 @@ class Organism:
     def alive(self) -> bool:
         return self.energy > 0.0 and self.age < self.genome.max_age
 
-    def step(self, world: World, rng: random.Random) -> float:
+    def act(self, intent: Intent, world: World) -> None:
+        """Age one tick, move by ``intent`` and pay basal metabolism plus movement cost."""
         cfg = world.config
         self.age += 1
-        target = world.nearest_resource(self.x, self.y, self.genome.sensor_range)
-
-        if target is None:
-            angle = rng.random() * math.tau
-            distance = self.genome.speed * rng.uniform(*cfg.wander_step_range)
-            dx, dy = math.cos(angle) * distance, math.sin(angle) * distance
-        else:
-            dx, dy = world.delta(self.x, self.y, target.x, target.y)
-            d = math.hypot(dx, dy)
-            distance = min(self.genome.speed, d)
-            if d > 1e-12:
-                dx, dy = dx / d * distance, dy / d * distance
-            else:
-                dx = dy = 0.0
-
-        self.x, self.y = world.wrap(self.x + dx, self.y + dy)
-        travelled = math.hypot(dx, dy)
-        self.energy -= self.genome.metabolism + travelled * self.genome.movement_cost
-
-        eaten = 0.0
-        target = world.nearest_resource(self.x, self.y, radius=cfg.contact_radius)
-        if target is not None:
-            eaten = min(target.energy, cfg.bite_size)
-            target.energy -= eaten
-            self.energy += eaten
-        return eaten
+        self.x, self.y = world.wrap(self.x + intent.dx, self.y + intent.dy)
+        travelled = math.hypot(intent.dx, intent.dy)
+        self.energy -= basal_metabolism(self.genome, cfg) + travelled * cfg.movement_cost * self.genome.speed
 
     def can_reproduce(self) -> bool:
         return self.energy >= self.genome.reproduction_threshold and self.alive
 
-    def reproduce(self, child_id: int, rng: random.Random, world: World) -> "Organism":
+    def reproduce(self, child_id: int, world: World, placement: random.Random,
+                  mutation: random.Random) -> "Organism":
         child_energy = self.energy * self.genome.offspring_fraction
         self.energy -= child_energy
-        angle = rng.random() * math.tau
+        angle = placement.random() * math.tau
         offset = world.config.offspring_offset
         x, y = world.wrap(self.x + math.cos(angle) * offset, self.y + math.sin(angle) * offset)
         return Organism(
@@ -73,7 +60,7 @@ class Organism:
             x=x,
             y=y,
             energy=child_energy,
-            genome=self.genome.mutate(rng) if world.config.mutate_offspring else self.genome,
+            genome=self.genome.mutate(mutation) if world.config.mutate_offspring else self.genome,
             generation=self.generation + 1,
             parent_id=self.oid,
         )

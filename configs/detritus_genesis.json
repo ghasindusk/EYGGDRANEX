@@ -1,0 +1,8 @@
+{
+  "$comment": "Default GENESIS world with detritus switched on: organisms dying of age leave half their energy as a decaying patch.",
+  "seed": 42,
+  "population": 60,
+  "world": {"width": 100.0, "height": 100.0, "resource_patches": 55},
+  "model": {"detritus_fraction": 0.5, "detritus_decay": 0.05},
+  "steps": 1000
+}

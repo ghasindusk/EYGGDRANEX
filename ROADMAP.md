@@ -20,12 +20,16 @@
 - [x] invariant tests and versioned full-state golden digest
 - [x] neutral-drift and fixed-genome controls
 - [x] long-run stability tests (`python -m eyggnx.stability`, `tests/test_stability.py`)
-- [ ] decide update-order semantics (simulation contract 2)
-- [ ] named RNG streams (simulation contract 2)
+- [x] order-neutral updates: simultaneous decisions, equal sharing of contested patches (simulation contract 2)
+- [x] named RNG streams (simulation contract 2)
+- [x] trade-off costs instead of costless genes; log-normal reflecting mutation; continuous `max_age` (simulation contract 2)
+- [x] heritable foraging controller parameters (simulation contract 2)
 - [x] golden digests for Linux / Windows (`linux-x86_64`, `win32-amd64`)
 - [ ] golden digests for other platforms (e.g. macOS)
 
 ## Phase 2 — ECOLOGY (`v0.2.x-alpha`)
+- [x] seams: intent/resolve pipeline, spatial grid, gene registry, substrates (detritus)
+- [ ] energy vector (multiple chemistries as config)
 - [ ] multiple resource chemistries
 - [ ] predation/scavenging
 - [ ] competition

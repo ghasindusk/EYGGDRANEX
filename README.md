@@ -47,11 +47,14 @@ v0.1.1-alpha は、公開済み v0.1.0-alpha を基準点として Astra / Opus 
 - 中立ドリフト / 固定ゲノム対照
 - platform別 golden digest と wheel/package CI
 
+### Unreleased: simulation contract 2
+
+`main` の開発版は simulation contract 2 で動く（contract 1 の軌跡はタグ `v0.1.1-alpha` から再現できる）。順序に依存しない tick、機構ごとの乱数系統、代償のある形質、対数正規・反射型の突然変異、遺伝する採餌制御器、空間グリッド、デトリタスを導入した。詳細は `CHANGELOG.md` と `docs/architecture/INVARIANTS.md`。
+
 ### Current limitations
 
-- 行動則は固定の資源指向制御器で、遺伝しない。進化するのは生理・生活史パラメータだけである。
-- 個体はリスト順に行動する。この順序は進化する生活史戦略に強く影響する（`docs/specifications/ORGANISM_SPEC.md`）。
-- 対価のない遺伝子は、長期的に clamp 境界へ移動する（`docs/specifications/GENOME_SPEC.md`）。
+- 採餌制御器のパラメータは遺伝するが、スコア関数の形は固定である（`docs/specifications/ORGANISM_SPEC.md`）。
+- 形質の代償（代謝・移動コストの係数）は最初の仮説であり、物理的に正当化された値ではない（`docs/specifications/GENOME_SPEC.md`）。
 - golden digest はplatformごとに管理する。現時点でOSをまたいだbit-identical trajectoryは主張しない。
 - GENESIS の結果は「創発の実証」ではなく、計測可能な基準系として扱う。
 

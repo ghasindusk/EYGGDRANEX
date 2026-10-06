@@ -27,11 +27,11 @@ from pathlib import Path
 from statistics import fmean, pstdev
 from typing import IO, Any
 
-from .genome import GENE_BOUNDS, Genome
+from .genome import Genome, at_bounds
 from .organism import Organism
 from .simulation import Simulation
 
-#: A gene counts as "at a bound" when within this fraction of its range from the bound.
+#: A gene counts as "at a bound" when within this fraction of its log-range from the bound.
 BOUND_TOLERANCE = 0.01
 
 
@@ -42,15 +42,14 @@ def gene_metrics(organisms: list[Organism]) -> dict[str, dict[str, float]]:
     n = len(organisms)
     for f in fields(Genome):
         values = [float(getattr(o.genome, f.name)) for o in organisms]
-        lo, hi = GENE_BOUNDS[f.name]
-        eps = (hi - lo) * BOUND_TOLERANCE
+        flags = [at_bounds(f.name, v, BOUND_TOLERANCE) for v in values]
         out[f.name] = {
             "mean": fmean(values),
             "sd": pstdev(values),
             "min": min(values),
             "max": max(values),
-            "frac_at_lower": sum(v <= lo + eps for v in values) / n,
-            "frac_at_upper": sum(v >= hi - eps for v in values) / n,
+            "frac_at_lower": sum(lower for lower, _ in flags) / n,
+            "frac_at_upper": sum(upper for _, upper in flags) / n,
         }
     return out
 

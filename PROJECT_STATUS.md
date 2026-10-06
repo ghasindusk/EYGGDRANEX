@@ -27,6 +27,12 @@
 - Public GitHub prerelease **EYGGDRANEX v0.1.1-alpha — GENESIS Review Integration** is published
 - One-shot tag/release workflows were removed after use
 
+## Development on `main` (unreleased)
+
+- Simulation contract 2: order-neutral tick, named RNG streams, trade-off costs, log-normal reflecting mutation, continuous `max_age`, heritable foraging controller, spatial grid, optional detritus
+- Long-run stability runs (`python -m eyggnx.stability`) and cross-platform CI (Linux / Windows / macOS)
+- Architecture invariants adopted as project policy (`docs/architecture/INVARIANTS.md`)
+
 ## Release status
 
 - [x] PR #1 merged

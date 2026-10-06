@@ -2,8 +2,25 @@
 
 ## [Unreleased]
 
+**Simulation contract 2.** Every seeded trajectory changes. Contract 1 remains reproducible from tag
+`v0.1.1-alpha`. Golden digests were re-recorded for contract 2.
+
+### Changed (simulation contract 2)
+- Order-neutral tick: every organism decides on the same world state (`Controller.decide` returns an `Intent`), all moves and costs are applied, then contested patches are shared equally. Permuting the organism list no longer changes the trajectory; list order gives no feeding priority.
+- Named RNG streams (`world`, `founders`, `movement`, `placement`, `mutation`), each derived from `(seed, name)` with SHA-256. Changing one mechanism no longer shifts the random numbers of the others.
+- Costs instead of costless genes: `metabolism` and `movement_cost` are no longer genes but physics in `SimulationConfig` (`base_metabolism`, `sensor_cost`, `longevity_cost`, `movement_cost`). Basal metabolism grows with `sensor_range` and `max_age`; movement cost scales with `speed`. Defaults keep the default genome's metabolism at about 0.22.
+- Log-normal mutation with reflecting bounds in log space replaces `v × (1 + N(0, s))` with clamping: no downward neutral drift and no pile-up at the bounds.
+- `max_age` is continuous instead of integer-rounded.
+- Heritable foraging controller: new genes `distance_aversion` (patch score `energy / (1 + aversion × distance)`) and `wander_step` (random-walk step as a fraction of speed) replace the fixed nearest-patch rule and `wander_step_range`.
+- `Snapshot.mean_metabolism` reports the mean basal metabolism computed from genes and physics.
+- Gene bound occupancy (`frac_at_lower` / `frac_at_upper`) is measured within 1% of each gene's log-range.
+
 ### Added
-- `python -m eyggnx.stability`: long-run, multi-seed stability runs with structural invariant checks (finite energy, positions, resource capacity, population accounting, unique ids) and per-seed summaries. `tests/test_stability.py` runs 2 seeds × 3,000 ticks.
+- Gene registry `eyggnx.genome.GENES` (name, default, bounds, description); `Genome` fields are checked against it.
+- `eyggnx.controller`: `Controller` protocol, `Intent`, `ForagingController`.
+- Spatial grid in `World` for perception queries (identical results to a full scan, tested).
+- Detritus: with `detritus_fraction > 0`, an organism dying of age leaves part of its energy as a decaying, non-renewable patch (`configs/detritus_genesis.json`). Off by default.
+- `python -m eyggnx.stability`: long-run, multi-seed stability runs with structural invariant checks (finite energy, positions, resource capacity, population accounting, unique ids) and per-seed summaries; `--config` selects a model. `tests/test_stability.py` runs 2 seeds × 3,000 ticks.
 - CI runs the test suite on Windows and macOS (Python 3.12) as well as Linux (3.11–3.13); a missing golden digest is reported with its value in the skip message.
 
 ### Documentation

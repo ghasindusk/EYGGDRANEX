@@ -15,6 +15,7 @@ result, not a failure; only invariant violations are failures.
 Usage::
 
     python -m eyggnx.stability --seeds 0-19 --ticks 30000 --check-every 100
+    python -m eyggnx.stability --seeds 0-19 --ticks 30000 --config configs/detritus_genesis.json
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ import math
 from statistics import fmean, median, pstdev
 from typing import Any
 
-from .config import SIMULATION_CONTRACT, SimulationConfig
+from .config import SIMULATION_CONTRACT, SimulationConfig, load_experiment
 from .recorder import gene_metrics
 from .simulation import Simulation
 from .validation import non_negative_int
@@ -125,14 +126,16 @@ def main() -> None:
     p.add_argument("--ticks", type=int, default=10000)
     p.add_argument("--population", type=int, default=60)
     p.add_argument("--check-every", type=int, default=100)
+    p.add_argument("--config", metavar="PATH", help="experiment JSON whose model/world config is used")
     p.add_argument("--per-seed", action="store_true", help="include every per-seed result")
     args = p.parse_args()
     try:
-        runs = [run_seed(s, args.ticks, args.population, check_every=args.check_every)
+        config = load_experiment(args.config).config if args.config else SimulationConfig()
+        runs = [run_seed(s, args.ticks, args.population, config=config, check_every=args.check_every)
                 for s in parse_seeds(args.seeds)]
     except ValueError as exc:
         p.error(str(exc))
-    out: dict[str, Any] = {"simulation_contract": SIMULATION_CONTRACT, "ticks": args.ticks,
+    out: dict[str, Any] = {"simulation_contract": SIMULATION_CONTRACT, "config": config.to_dict(), "ticks": args.ticks,
                            "population": args.population, "summary": summarize(runs)}
     if args.per_seed:
         out["runs"] = runs
