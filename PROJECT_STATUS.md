@@ -8,7 +8,7 @@
 
 ## Completion
 
-**Simulation contract 2 and external data nutrients: merged / release in preparation**
+**Simulation contract 2 and external data nutrients: complete / published**
 
 ## Completed
 
@@ -24,13 +24,13 @@
 ## Release status
 
 - [x] PR #3–#6 merged
-- [ ] Release-prep PR merged
-- [ ] main CI green on the release commit
+- [x] Release-prep PR #7 merged
+- [x] main CI green on the release commit
 - [x] package metadata bumped to 0.1.2a1
 - [x] CHANGELOG finalized
 - [x] CITATION metadata updated
-- [ ] annotated tag created and verified
-- [ ] GitHub prerelease published
+- [x] annotated tag `v0.1.2-alpha` created and verified (`3444cdb5bc4a9b71aca5ae3002af05319a5bdf57`)
+- [x] GitHub prerelease published
 
 ## Remaining repository administration
 
