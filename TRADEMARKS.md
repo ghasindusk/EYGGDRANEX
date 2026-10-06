@@ -23,4 +23,4 @@ However, nearby naming space is not empty: YGGDRASIL has software/game trademark
 
 Therefore the project remains **CONDITIONAL GO / Yellow** pending a final J-PlatPat phonetic/similar-group-code check before filing a trademark application.
 
-See `EYGGDRANEX_TRADEMARK_CLEARANCE_2026-09-25.md` for the detailed review.
+The detailed clearance review is kept privately by the maintainer and is not published in this repository, because it is pre-filing legal research.

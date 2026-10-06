@@ -24,6 +24,7 @@
 - CI runs the test suite on Windows and macOS (Python 3.12) as well as Linux (3.11–3.13); a missing golden digest is reported with its value in the skip message.
 
 ### Documentation
+- TRADEMARKS: the detailed clearance review is kept private; the link to the unpublished file was replaced with a note.
 - Adopted the 12 architecture invariants from the Opus GENESIS audit as project policy (`docs/architecture/INVARIANTS.md`), with current compliance under simulation contract 1. No code or trajectory change.
 - ROADMAP: marked Linux / Windows golden digests as done.
 
