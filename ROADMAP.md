@@ -22,7 +22,8 @@
 - [ ] long-run stability tests
 - [ ] decide update-order semantics (simulation contract 2)
 - [ ] named RNG streams (simulation contract 2)
-- [ ] golden digests for Linux / other platforms
+- [x] golden digests for Linux / Windows (`linux-x86_64`, `win32-amd64`)
+- [ ] golden digests for other platforms (e.g. macOS)
 
 ## Phase 2 — ECOLOGY (`v0.2.x-alpha`)
 - [ ] multiple resource chemistries

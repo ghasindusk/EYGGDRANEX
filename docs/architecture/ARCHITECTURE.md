@@ -61,3 +61,7 @@ GENESISでは「脳」を単純な資源指向制御器に限定する。この�
 2. **Lifetime learning (planned).** 個体の生涯内状態は、明示的にフラグを立てた実験でない限り遺伝しない（Lamarck 的遺伝はデフォルトで禁止）。
 3. **Cultural inheritance (planned).** 文化的状態は個体の外、または明示的に伝達される人工物として持つ。
 4. **High-level reasoning (planned, optional).** LLM 等は任意の高次層に限定し、既定では無効とする。毎 tick 全個体の「脳」にはしない。決定性の中核の外に置くか、応答を記録して再生可能にする。
+
+## Invariants
+
+プロジェクト全体で守る12項目の不変条件と、現時点での達成状況は [`INVARIANTS.md`](INVARIANTS.md) にある。

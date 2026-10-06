@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Documentation
+- Adopted the 12 architecture invariants from the Opus GENESIS audit as project policy (`docs/architecture/INVARIANTS.md`), with current compliance under simulation contract 1. No code or trajectory change.
+- ROADMAP: marked Linux / Windows golden digests as done.
+
 ## [0.1.1-alpha] — 2026-09-25 — GENESIS review integration
 
 Approved ACCEPT-NOW items from the independent Astra/Opus audits
