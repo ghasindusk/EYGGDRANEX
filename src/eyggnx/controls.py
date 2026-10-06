@@ -6,9 +6,9 @@
 
 """Null and control conditions for telling selection apart from mutation bias.
 
-* ``neutral_drift``: mutation-only lineages with no selection. The mutation operator
-  ``v * (1 + N(0, s))`` followed by clamping is biased downward in log space, and
-  ``mutation_scale`` mutates itself, so genes drift without any selection. Compare
+* ``neutral_drift``: mutation-only lineages with no selection. The log-normal operator
+  is unbiased in log space, but the reflecting bounds pull long lineages toward the
+  middle of each gene's log-range, and ``mutation_scale`` mutates itself. Compare
   observed trait changes against this baseline before calling them adaptation.
 * Fixed-genome control: run with ``SimulationConfig(mutate_offspring=False)``.
 
@@ -26,7 +26,7 @@ import random
 from statistics import median
 from typing import Any
 
-from .genome import GENE_BOUNDS, Genome
+from .genome import Genome, at_bounds
 from .validation import non_negative_int
 
 
@@ -45,13 +45,12 @@ def neutral_drift(generations: int, lineages: int, seed: int, start: Genome | No
     genes: dict[str, Any] = {}
     for f in fields(Genome):
         values = [float(getattr(g, f.name)) for g in finals]
-        lo, hi = GENE_BOUNDS[f.name]
-        eps = (hi - lo) * 0.01
+        flags = [at_bounds(f.name, v) for v in values]
         genes[f.name] = {
             "start": float(getattr(start, f.name)),
             "median": median(values) if values else None,
-            "frac_at_lower": sum(v <= lo + eps for v in values) / len(values) if values else None,
-            "frac_at_upper": sum(v >= hi - eps for v in values) / len(values) if values else None,
+            "frac_at_lower": sum(lower for lower, _ in flags) / len(values) if values else None,
+            "frac_at_upper": sum(upper for _, upper in flags) / len(values) if values else None,
         }
     return {"control": "neutral_drift", "generations": generations, "lineages": lineages, "seed": seed,
             "genes": genes}

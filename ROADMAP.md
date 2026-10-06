@@ -19,12 +19,16 @@
 - [x] lineage event export (births/deaths incl. dead organisms)
 - [x] invariant tests and versioned full-state golden digest
 - [x] neutral-drift and fixed-genome controls
-- [ ] long-run stability tests
-- [ ] decide update-order semantics (simulation contract 2)
-- [ ] named RNG streams (simulation contract 2)
-- [ ] golden digests for Linux / other platforms
+- [x] long-run stability tests (`python -m eyggnx.stability`, `tests/test_stability.py`)
+- [x] order-neutral updates: simultaneous decisions, equal sharing of contested patches (simulation contract 2)
+- [x] named RNG streams (simulation contract 2)
+- [x] trade-off costs instead of costless genes; log-normal reflecting mutation; continuous `max_age` (simulation contract 2)
+- [x] heritable foraging controller parameters (simulation contract 2)
+- [x] golden digests for Linux / Windows / macOS (`linux-x86_64`, `win32-amd64`, `darwin-arm64`), verified in CI
 
 ## Phase 2 — ECOLOGY (`v0.2.x-alpha`)
+- [x] seams: intent/resolve pipeline, spatial grid, gene registry, substrates (detritus)
+- [ ] energy vector (multiple chemistries as config)
 - [ ] multiple resource chemistries
 - [ ] predation/scavenging
 - [ ] competition
@@ -53,7 +57,9 @@
 - [ ] 3D visualization
 
 ## Phase 6 — OPEN BIOSPHERE
-- [ ] external data nutrients
+- [x] external data nutrients — static files as non-renewable food, energy = compressed size (`--nutrient-dir`)
+- [ ] data nutrients with chemistry (byte distribution as composition, needs the energy vector)
+- [ ] data that arrives over time (new files as new food during a run)
 - [ ] distributed simulation
 - [ ] persistent worlds
 - [ ] network organisms

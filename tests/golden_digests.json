@@ -1,14 +1,15 @@
 {
-  "_comment": "Full-state digests (Simulation.state_digest) for simulation contract 1. Keys are '<sys.platform>-<machine>' because trajectories differ across platforms (confirmed: linux-x86_64 and win32-amd64 diverge for the same seed; each is stable across Python 3.11-3.13). A missing key skips the test; record one with `python tests/record_golden.py`. Changing an existing value is a simulation-contract change and must be explained in CHANGELOG.md.",
-  "simulation_contract": 1,
+  "_comment": "Full-state digests (Simulation.state_digest) for simulation contract 2. Keys are '<sys.platform>-<machine>' because trajectories can differ across platforms (math library differences). A missing key skips the test and reports the digest; record one with `python tests/record_golden.py --write`. Changing an existing value is a simulation-contract change and must be explained in CHANGELOG.md. Contract 1 digests are reproducible from tag v0.1.1-alpha.",
+  "simulation_contract": 2,
   "cases": {
     "seed42_pop60_ticks1000": {
       "seed": 42,
       "population": 60,
       "ticks": 1000,
       "digests": {
-        "linux-x86_64": "f593acf537a41473eefde15879f3f59560681337c7e178b4c91091a664c18dac",
-        "win32-amd64": "bb9270596374d19ff96cb9e4ddfd37adf2accf97f5a1e6315e54c3ba1caf1850"
+        "linux-x86_64": "71cd60ee78e3ee74babd9391d3521a0357eadcb9d57bd8464ae3253cb29f7ef3",
+        "win32-amd64": "befac5f4db993c3c6d5c5e047e448035517d010ab346e179213184073aba08c3",
+        "darwin-arm64": "77ceb3474062ee5c85508f3b7fee5d71f135059cd4bdc2376f7a77bcdf7eb11b"
       }
     }
   }

@@ -56,10 +56,11 @@ class RecorderTests(unittest.TestCase):
         self.assertEqual(series[-1]["population"], len(sim.organisms))
 
     def test_gene_metrics_flag_bound_occupancy(self):
-        organisms = [Organism(oid=i, x=0.0, y=0.0, energy=1.0, genome=Genome(metabolism=m))
-                     for i, m in enumerate((0.05, 0.05, 0.3, 2.5))]
-        metabolism = gene_metrics(organisms)["metabolism"]
-        self.assertEqual((metabolism["frac_at_lower"], metabolism["frac_at_upper"]), (0.5, 0.25))
+        organisms = [Organism(oid=i, x=0.0, y=0.0, energy=1.0, genome=Genome(distance_aversion=a))
+                     for i, a in enumerate((0.01, 0.0105, 1.0, 100.0))]
+        aversion = gene_metrics(organisms)["distance_aversion"]
+        # Tolerance is 1% of the log-range, so 1.0 is far from both bounds of [0.01, 100].
+        self.assertEqual((aversion["frac_at_lower"], aversion["frac_at_upper"]), (0.5, 0.25))
 
 
 class ControlTests(unittest.TestCase):
@@ -70,10 +71,13 @@ class ControlTests(unittest.TestCase):
         self.assertGreater(sim.births_total, 0)
         self.assertTrue({o.genome for o in sim.organisms} <= founders)
 
-    def test_neutral_drift_shows_downward_mutation_bias(self):
-        result = neutral_drift(generations=300, lineages=300, seed=7)
-        self.assertLess(result["genes"]["speed"]["median"], Genome().speed * 0.9)
-        self.assertLess(result["genes"]["metabolism"]["median"], Genome().metabolism * 0.9)
+    def test_neutral_drift_has_no_directional_bias(self):
+        # Contract 2's log-normal operator: no downward drift and no pile-up at the bounds.
+        result = neutral_drift(generations=50, lineages=300, seed=7)
+        for name in ("speed", "sensor_range", "max_age"):
+            gene = result["genes"][name]
+            self.assertLess(abs(gene["median"] / gene["start"] - 1.0), 0.1, name)
+            self.assertLess(gene["frac_at_lower"] + gene["frac_at_upper"], 0.05, name)
 
     def test_neutral_drift_is_deterministic(self):
         self.assertEqual(neutral_drift(50, 20, seed=1), neutral_drift(50, 20, seed=1))

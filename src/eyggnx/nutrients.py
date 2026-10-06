@@ -1,0 +1,77 @@
+# Copyright (c) 2026 SHAR-K
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+"""External data nutrients: files in a directory become food in the world.
+
+Every regular file directly inside ``SimulationConfig.nutrient_dir`` becomes one
+non-renewable substrate patch. The data is only read as bytes, never executed or
+interpreted, and nothing is fetched from the network.
+
+* Which files: regular files directly in the directory, by name. Subdirectories and
+  symbolic links are ignored. At most ``nutrient_max_files`` files and the first
+  ``nutrient_max_bytes`` bytes of each are read.
+* Energy: proportional to the information in the bytes, measured as the zlib
+  compressed size, ``min(nutrient_max_energy, compressed_bytes * nutrient_energy_per_byte)``.
+  File names, extensions and types play no role (no kinds).
+* Position: derived from the SHA-256 of the bytes, so loading nutrients draws no random
+  numbers and shifts no other mechanism.
+* Reproducibility: the manifest (name, size, bytes read, SHA-256, energy) and its digest
+  are stored with the simulation and in the run record.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from pathlib import Path
+from typing import Any
+import zlib
+
+from .config import SimulationConfig
+from .world import ResourcePatch
+
+
+def nutrient_energy(data: bytes, config: SimulationConfig) -> float:
+    """Energy of a nutrient: its compressed size (information content), capped."""
+    if not data:
+        return 0.0
+    compressed = len(zlib.compress(data, 9))
+    return min(config.nutrient_max_energy, compressed * config.nutrient_energy_per_byte)
+
+
+def nutrient_position(digest: bytes, width: float, height: float) -> tuple[float, float]:
+    x = int.from_bytes(digest[0:8], "big") / 2.0**64 * width
+    y = int.from_bytes(digest[8:16], "big") / 2.0**64 * height
+    return x, y
+
+
+def load_nutrients(config: SimulationConfig) -> tuple[list[ResourcePatch], dict[str, Any]]:
+    """Read ``config.nutrient_dir`` and return its nutrient patches and manifest."""
+    directory = Path(config.nutrient_dir) if config.nutrient_dir is not None else None
+    if directory is None:
+        return [], {"directory": None, "files": [], "digest": None}
+    if not directory.is_dir():
+        raise ValueError(f"nutrient_dir is not a directory: {directory}")
+    with os.scandir(directory) as it:
+        entries = sorted((e for e in it if e.is_file(follow_symlinks=False) and not e.is_symlink()),
+                         key=lambda e: e.name)
+    patches: list[ResourcePatch] = []
+    files: list[dict[str, Any]] = []
+    for entry in entries[: config.nutrient_max_files]:
+        with open(entry.path, "rb") as fh:
+            data = fh.read(config.nutrient_max_bytes)
+        digest = hashlib.sha256(data).digest()
+        energy = nutrient_energy(data, config)
+        files.append({"name": entry.name, "size": entry.stat(follow_symlinks=False).st_size,
+                      "bytes_read": len(data), "sha256": digest.hex(), "energy": energy})
+        if energy > 0.0:
+            x, y = nutrient_position(digest, config.width, config.height)
+            patches.append(ResourcePatch(x, y, energy, energy, 0.0))
+    manifest_digest = hashlib.sha256(
+        json.dumps([[f["name"], f["bytes_read"], f["sha256"]] for f in files]).encode()).hexdigest()
+    return patches, {"directory": str(directory), "files": files, "skipped_over_limit":
+                     max(0, len(entries) - config.nutrient_max_files), "digest": manifest_digest}

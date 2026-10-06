@@ -45,6 +45,7 @@ def build_run_record(spec: ExperimentSpec, sim: Simulation, snap: Snapshot) -> d
         "meta": run_metadata(),
         "experiment": spec.to_dict(),
         "gene_bounds": {k: list(v) for k, v in GENE_BOUNDS.items()},
+        "nutrients": sim.nutrient_manifest,
         "result": {
             "requested_steps": spec.steps,
             "completed_ticks": sim.tick_index,
