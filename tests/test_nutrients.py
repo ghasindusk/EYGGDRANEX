@@ -99,6 +99,22 @@ class LoadingTests(NutrientDirTestCase):
         self.write("a", b"two" * 30)
         self.assertNotEqual(first, load_nutrients(self.config())[1]["digest"])
 
+    def test_unreadable_files_are_skipped_and_listed(self):
+        self.write("good", b"some text " * 20)
+        self.write("placeholder.gdoc", b"x")
+        real_open = open
+
+        def fake_open(path, *args, **kwargs):
+            if str(path).endswith("placeholder.gdoc"):
+                raise OSError(22, "Invalid argument")
+            return real_open(path, *args, **kwargs)
+
+        with mock.patch("builtins.open", fake_open):
+            patches, manifest = load_nutrients(self.config())
+        self.assertEqual([f["name"] for f in manifest["files"]], ["good"])
+        self.assertEqual(manifest["unreadable"], ["placeholder.gdoc"])
+        self.assertEqual(len(patches), 1)
+
     def test_missing_directory_is_rejected(self):
         with self.assertRaises(ValueError):
             load_nutrients(SimulationConfig(nutrient_dir=str(self.dir / "missing")))

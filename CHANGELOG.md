@@ -25,6 +25,9 @@
 
 - Nutrient attributes: each nutrient file is classified from its content's leading bytes (format signatures; never the file name or extension) as `text`, `archive`, `image`, `media`, `document`, `executable` or `binary`. The category sets an `energy` factor (energy = factor × compressed size × `nutrient_energy_per_byte`; archive 1.25) and a `digestibility` factor on the release rate (archive, image, media 0.5; document, executable, binary 0.75; text 1.0). Overridable per category via `nutrient_attributes`; recorded in the manifest. Archives are never unpacked. Invariant #2 is revised to allow a property table for substrates (organisms never branch on it). Nutrient runs with only text files are unchanged; runs with binary files change.
 
+### Fixed
+- Loading nutrients no longer fails when a file in the directory cannot be read (e.g. Google Drive `.gdoc` placeholders); such files are skipped and listed under `unreadable` in the manifest.
+
 ### Changed
 - `nutrient_max_energy` default 200 → 10,000: the cap now binds only near the 1,000,000-byte read limit, so larger documents give more energy (at 200, every 28 KB–3 MB docx was capped at the same value).
 - External data nutrients release their energy slowly by default (`nutrient_release_rate = 0.4`, `nutrient_release_capacity = 30`): exposing everything at once produced a boom and crash (`experiments/nutrients/README.md`). `nutrient_release_rate = 0` restores immediate release. Runs without `nutrient_dir` and their golden digests are unchanged.

@@ -12,7 +12,8 @@ interpreted, and nothing is fetched from the network.
 
 * Which files: regular files directly in the directory, by name. Subdirectories and
   symbolic links are ignored. At most ``nutrient_max_files`` files and the first
-  ``nutrient_max_bytes`` bytes of each are read.
+  ``nutrient_max_bytes`` bytes of each are read. Files that cannot be read (cloud
+  placeholders, locked files) are skipped and listed under ``unreadable``.
 * Patches: one per file, or, with ``nutrient_chunk_bytes > 0``, one per chunk of that
   many bytes, so a large file is spread over the world instead of sitting in one spot.
 * Category: read from the content's leading bytes (format signatures such as ``PK``
@@ -123,9 +124,15 @@ def load_nutrients(config: SimulationConfig) -> tuple[list[ResourcePatch], dict[
                          key=lambda e: e.name)
     patches: list[ResourcePatch] = []
     files: list[dict[str, Any]] = []
+    unreadable: list[str] = []
     for entry in entries[: config.nutrient_max_files]:
-        with open(entry.path, "rb") as fh:
-            data = fh.read(config.nutrient_max_bytes)
+        try:
+            with open(entry.path, "rb") as fh:
+                data = fh.read(config.nutrient_max_bytes)
+        except OSError:
+            # e.g. cloud placeholders (Google Drive .gdoc) or files locked by another program
+            unreadable.append(entry.name)
+            continue
         category = nutrient_category(data)
         attrs = config.nutrient_attributes_for(category)
         energy = 0.0
@@ -145,5 +152,5 @@ def load_nutrients(config: SimulationConfig) -> tuple[list[ResourcePatch], dict[
         files.append(record)
     manifest_digest = hashlib.sha256(
         json.dumps([[f["name"], f["bytes_read"], f["sha256"]] for f in files]).encode()).hexdigest()
-    return patches, {"directory": str(directory), "files": files, "skipped_over_limit":
+    return patches, {"directory": str(directory), "files": files, "unreadable": unreadable, "skipped_over_limit":
                      max(0, len(entries) - config.nutrient_max_files), "digest": manifest_digest}
