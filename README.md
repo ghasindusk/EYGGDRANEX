@@ -28,9 +28,9 @@
 
 `EYGGNX` is the preferred compact technical identifier. Public-facing releases and research citations should retain the full **EYGGDRANEX** name.
 
-## v0.1.1-alpha — GENESIS Review Integration
+## v0.1.2-alpha — Simulation Contract 2 and External Data Nutrients
 
-v0.1.1-alpha は、公開済み v0.1.0-alpha を基準点として Astra / Opus の独立監査を統合した品質・再現性強化版です。simulation contract 1 を維持しつつ、実験設定、run record、lineage/時系列記録、対照条件、入力検証、golden digest、package CI を追加しています。
+v0.1.2-alpha は simulation contract 2 の最初のリリースです。順序に依存しない tick、機構ごとの乱数系統、代償のある形質、対数正規・反射型の突然変異、遺伝する採餌制御器、空間グリッド、デトリタス、長期安定性の検査、Linux / Windows / macOS の CI を導入し、外部データを餌にできるようにしました。contract 1 の軌跡はタグ `v0.1.1-alpha` から再現できます。
 
 `Genome → Metabolism → Perception → Action → Energy → Reproduction → Mutation → Death → Selection`
 
@@ -47,9 +47,9 @@ v0.1.1-alpha は、公開済み v0.1.0-alpha を基準点として Astra / Opus 
 - 中立ドリフト / 固定ゲノム対照
 - platform別 golden digest と wheel/package CI
 
-### Unreleased: simulation contract 2
+### Simulation contract 2
 
-`main` の開発版は simulation contract 2 で動く（contract 1 の軌跡はタグ `v0.1.1-alpha` から再現できる）。順序に依存しない tick、機構ごとの乱数系統、代償のある形質、対数正規・反射型の突然変異、遺伝する採餌制御器、空間グリッド、デトリタスを導入した。詳細は `CHANGELOG.md` と `docs/architecture/INVARIANTS.md`。
+詳細は `CHANGELOG.md` と `docs/architecture/INVARIANTS.md`（プロジェクト方針の不変条件12項目）。
 
 ### 外部データを餌にする
 
@@ -57,7 +57,7 @@ v0.1.1-alpha は、公開済み v0.1.0-alpha を基準点として Astra / Opus 
 eyggnx --nutrient-dir path/to/data --steps 3000 --format record
 ```
 
-指定したディレクトリ直下のファイルが、世界に置かれる有限の餌になります。ファイルは読むだけで、実行や解釈はしません。栄養価はデータの情報量（圧縮後のサイズ）で決まり、ファイル名や形式は使いません。詳細は `docs/specifications/ECOSYSTEM_SPEC.md`。
+指定したディレクトリ直下のファイルが、世界に置かれる有限の餌になります。ファイルは読むだけで、実行や解釈はしません。栄養価はデータの情報量（圧縮後のサイズ）で決まり、中身の先頭バイトから分類した形式で係数が変わります（ファイル名・拡張子は使いません）。餌は既定でゆっくり放出され、大きなファイルは分割されます。一定期間ごとに餌を復活させることもできます（`nutrient_regrow_interval`）。詳細は `docs/specifications/ECOSYSTEM_SPEC.md` と `experiments/nutrients/README.md`。
 
 大きなファイルを世界に散らす（`nutrient_chunk_bytes`）、餌を少しずつ放出する速さ（`nutrient_release_rate`、既定 0.4。0 で一度に全部）の設定もあります。どちらも実験 JSON の `"model"` で指定します。
 
@@ -136,4 +136,4 @@ Security reports should follow [`SECURITY.md`](SECURITY.md).
 
 ## Status
 
-**v0.1.1-alpha — experimental.** 研究・実験用途を想定した初期段階であり、API互換性・生態系安定性・長期保存形式は保証されません。
+**v0.1.2-alpha — experimental.** 研究・実験用途を想定した初期段階であり、API互換性・生態系安定性・長期保存形式は保証されません。

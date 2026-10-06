@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.2-alpha] — 2026-10-07 — Simulation contract 2 and external data nutrients
+
 **Simulation contract 2.** Every seeded trajectory changes. Contract 1 remains reproducible from tag
 `v0.1.1-alpha`. Golden digests were re-recorded for contract 2 on Linux (`linux-x86_64`), Windows (`win32-amd64`) and macOS (`darwin-arm64`); the three platforms differ from each other, and each is checked in CI.
 

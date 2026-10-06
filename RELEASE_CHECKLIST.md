@@ -1,31 +1,29 @@
-# v0.1.1-alpha — GENESIS Review Integration Release Checklist
+# v0.1.2-alpha — Simulation Contract 2 and External Data Nutrients Release Checklist
 
 ## Code
-- [x] PR #1 merged
-- [x] PR #2 release-prep merged
-- [x] Main-branch CI passes
-- [x] Python 3.11 / 3.12 / 3.13 tests pass
-- [x] Package wheel build/install smoke test passes
-- [x] Linux and Windows golden digests recorded
-- [x] Simulation contract 1 remains active
-- [x] Recorder trajectory-equivalence test passes
+- [x] PR #3 (simulation contract 2) merged
+- [x] PRs #4, #5, #6 (external data nutrients) merged
+- [ ] Release-prep PR merged
+- [ ] Main-branch CI passes on the release commit
+- [ ] Python 3.11 / 3.12 / 3.13 tests pass (Linux), 3.12 on Windows and macOS
+- [ ] Package wheel build/install smoke test passes
+- [x] Linux, Windows and macOS golden digests recorded for contract 2
+- [x] Simulation contract 2 is active
 
 ## Release metadata
-- [x] Python package version set to 0.1.1a1
+- [x] Python package version set to 0.1.2a1
 - [x] CHANGELOG finalized
 - [x] CITATION.cff updated
 - [x] README status updated
 - [x] PROJECT_STATUS updated
-- [x] Annotated Git tag `v0.1.1-alpha` created
-- [x] Tag target verified as `94710f70bf3a5d4adb8db779c2fbdde633bdaafb`
-- [x] Public GitHub prerelease published
+- [ ] Annotated Git tag `v0.1.2-alpha` created by `.github/workflows/release.yml`
+- [ ] Tag target verified as a `main` commit with a successful CI run
+- [ ] Public GitHub prerelease published
 
 ## Baseline protection
-- [x] `v0.1.0-alpha` remains untouched
+- [x] `v0.1.0-alpha` and `v0.1.1-alpha` remain untouched
 - [x] No force-push
-- [x] Contract-2 decisions remain deferred
-- [x] One-shot tag workflow removed after use
-- [x] One-shot release workflow removed after use
+- [x] Contract 1 remains reproducible from tag `v0.1.1-alpha`
 
 ## Remaining GitHub administration
 - [ ] Repository Description updated

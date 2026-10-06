@@ -4,8 +4,8 @@ message: "If you use EYGGDRANEX in research, please cite the project and the exa
 type: software
 authors:
   - family-names: "SHAR-K"
-version: "0.1.1-alpha"
-date-released: 2026-09-25
+version: "0.1.2-alpha"
+date-released: 2026-10-07
 license: MPL-2.0
 keywords:
   - artificial-life
