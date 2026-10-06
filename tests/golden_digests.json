@@ -7,7 +7,9 @@
       "population": 60,
       "ticks": 1000,
       "digests": {
-        "linux-x86_64": "71cd60ee78e3ee74babd9391d3521a0357eadcb9d57bd8464ae3253cb29f7ef3"
+        "linux-x86_64": "71cd60ee78e3ee74babd9391d3521a0357eadcb9d57bd8464ae3253cb29f7ef3",
+        "win32-amd64": "befac5f4db993c3c6d5c5e047e448035517d010ab346e179213184073aba08c3",
+        "darwin-arm64": "77ceb3474062ee5c85508f3b7fee5d71f135059cd4bdc2376f7a77bcdf7eb11b"
       }
     }
   }

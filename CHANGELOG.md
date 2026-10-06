@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 **Simulation contract 2.** Every seeded trajectory changes. Contract 1 remains reproducible from tag
-`v0.1.1-alpha`. Golden digests were re-recorded for contract 2.
+`v0.1.1-alpha`. Golden digests were re-recorded for contract 2 on Linux (`linux-x86_64`), Windows (`win32-amd64`) and macOS (`darwin-arm64`); the three platforms differ from each other, and each is checked in CI.
 
 ### Changed (simulation contract 2)
 - Order-neutral tick: every organism decides on the same world state (`Controller.decide` returns an `Intent`), all moves and costs are applied, then contested patches are shared equally. Permuting the organism list no longer changes the trajectory; list order gives no feeding priority.

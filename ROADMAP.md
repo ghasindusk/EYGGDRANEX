@@ -24,8 +24,7 @@
 - [x] named RNG streams (simulation contract 2)
 - [x] trade-off costs instead of costless genes; log-normal reflecting mutation; continuous `max_age` (simulation contract 2)
 - [x] heritable foraging controller parameters (simulation contract 2)
-- [x] golden digests for Linux / Windows (`linux-x86_64`, `win32-amd64`)
-- [ ] golden digests for other platforms (e.g. macOS)
+- [x] golden digests for Linux / Windows / macOS (`linux-x86_64`, `win32-amd64`, `darwin-arm64`), verified in CI
 
 ## Phase 2 — ECOLOGY (`v0.2.x-alpha`)
 - [x] seams: intent/resolve pipeline, spatial grid, gene registry, substrates (detritus)
