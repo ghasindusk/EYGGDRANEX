@@ -64,7 +64,8 @@ class LoadingTests(NutrientDirTestCase):
         repetitive, noisy = b"a" * 10_000, os.urandom(10_000)
         self.assertLess(nutrient_energy(repetitive, cfg), nutrient_energy(noisy, cfg))
         self.assertAlmostEqual(nutrient_energy(repetitive, cfg), len(zlib.compress(repetitive, 9)) * 0.01)
-        self.assertEqual(nutrient_energy(os.urandom(100_000), cfg), cfg.nutrient_max_energy)
+        self.assertEqual(nutrient_energy(os.urandom(100_000), SimulationConfig(nutrient_max_energy=200.0)), 200.0)
+        self.assertLess(nutrient_energy(os.urandom(100_000), cfg), cfg.nutrient_max_energy)
         self.assertEqual(nutrient_energy(b"", cfg), 0.0)
 
     def test_names_and_extensions_do_not_matter(self):

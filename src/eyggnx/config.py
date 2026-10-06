@@ -74,7 +74,9 @@ class SimulationConfig:
     # non-renewable food patches. None = off. Only the bytes are read; nothing is executed.
     nutrient_dir: str | None = None
     nutrient_energy_per_byte: float = 0.01  # energy per byte of zlib-compressed data
-    nutrient_max_energy: float = 200.0  # cap per patch (a whole file, or one chunk)
+    # Cap per patch (a whole file, or one chunk). 1,000,000 bytes read give at most about
+    # 12,500 (archive), so the cap binds only near the read limit and file size still counts.
+    nutrient_max_energy: float = 10_000.0
     # 0 = one patch per file; otherwise each file is split into chunks of this many bytes,
     # each its own patch with its own energy and content-derived position.
     nutrient_chunk_bytes: int = 0
