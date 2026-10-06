@@ -18,10 +18,11 @@ interpreted, and nothing is fetched from the network.
 * Energy: proportional to the information in the bytes, measured as the zlib
   compressed size, ``min(nutrient_max_energy, compressed_bytes * nutrient_energy_per_byte)``
   per patch. File names, extensions and types play no role (no kinds).
-* Release: by default all of a patch's energy is exposed at once. With
-  ``nutrient_release_rate > 0`` the energy sits in a finite reservoir, at most
-  ``nutrient_release_capacity`` is exposed, and the reservoir refills it at that rate per
-  tick, like a slowly decomposing substrate. The total energy is the same either way.
+* Release: by default (``nutrient_release_rate > 0``) the energy sits in a finite
+  reservoir, at most ``nutrient_release_capacity`` is exposed, and the reservoir refills
+  it at that rate per tick, like a slowly decomposing substrate. With
+  ``nutrient_release_rate = 0`` all of it is exposed at once. The total energy is the
+  same either way.
 * Position: derived from the SHA-256 of the bytes (of the chunk), so loading nutrients
   draws no random numbers and shifts no other mechanism.
 * Reproducibility: the manifest (name, size, bytes read, SHA-256, energy) and its digest

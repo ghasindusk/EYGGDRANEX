@@ -14,8 +14,8 @@ seed 1–10、創始個体 60、3,000 tick、contract 2、Windows AMD64 / Python
 | 設定 | 餌の合計 | 通常: 最終個体数 | 通常: ピーク | データだけ: 存続 tick | データだけ: ピーク |
 |---|---|---|---|---|---|
 | 餌なし | 0 | 41.9 ± 12.1 | 130 ± 6 | 108 ± 2 | 61 ± 1 |
-| 一度に出す（既定） | 9,054 | 50.0 ± 7.4 | 508 ± 11 | 208 ± 26 | 432 ± 9 |
-| 放出 0.4 / 容量 30 | 9,054 | 51.6 ± 6.9 | 360 ± 9 | 496 ± 16 | 268 ± 6 |
+| 一度に出す（`nutrient_release_rate = 0`） | 9,054 | 50.0 ± 7.4 | 508 ± 11 | 208 ± 26 | 432 ± 9 |
+| 放出 0.4 / 容量 30（現在の既定） | 9,054 | 51.6 ± 6.9 | 360 ± 9 | 496 ± 16 | 268 ± 6 |
 | 放出 0.2 / 容量 30 | 9,054 | 52.2 ± 9.6 | 333 ± 8 | 622 ± 100 | 249 ± 5 |
 | 放出 0.4 / 容量 10 | 9,054 | 51.5 ± 8.4 | 298 ± 5 | 560 ± 51 | 200 ± 3 |
 | 放出 0.1 / 容量 30 | 9,054 | 63.2 ± 8.0 | 326 ± 6 | 542 ± 100 | 245 ± 5 |
@@ -32,7 +32,7 @@ seed 1–10、創始個体 60、3,000 tick、contract 2、Windows AMD64 / Python
 
 ## Open questions
 
-- 既定を「ゆっくり放出」に変えるか（変えても、餌を使わない実行の軌跡と golden digest は変わらない）。
+- 既定は「放出 0.4 / 容量 30」にした（SHAR-K 決定）。餌を使わない実行の軌跡と golden digest は変わらない。表の数値は既定を変える前に、設定を明示して測ったものである。
 - 放出率・容量の係数は仮説である。通常の資源パッチ（再生 0.18〜0.55、容量 26〜46）と同程度の値を試しただけで、物理的な根拠はない。
 - 別の種類のデータ（画像・バイナリ）や seed 20 個以上で同じ傾向になるか。
 
@@ -40,12 +40,12 @@ seed 1–10、創始個体 60、3,000 tick、contract 2、Windows AMD64 / Python
 
 ```bash
 for seed in $(seq 1 10); do
-  python -m eyggnx --steps 3000 --seed "$seed" --format record --nutrient-dir DATA_DIR > "fast_seed$seed.json"
+  python -m eyggnx --config immediate.json --seed "$seed" --format record --nutrient-dir DATA_DIR > "fast_seed$seed.json"
   python -m eyggnx --config release.json --seed "$seed" --format record --nutrient-dir DATA_DIR > "slow_seed$seed.json"
 done
 ```
 
-`release.json` の例:
+`immediate.json` は `{"steps": 3000, "model": {"nutrient_release_rate": 0.0}}`。`release.json` の例:
 
 ```json
 {"steps": 3000, "model": {"nutrient_release_rate": 0.4, "nutrient_release_capacity": 30.0}}

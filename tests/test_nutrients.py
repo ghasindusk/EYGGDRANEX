@@ -77,7 +77,7 @@ class LoadingTests(NutrientDirTestCase):
     def test_patches_are_finite_and_inside_the_world(self):
         for i in range(20):
             self.write(f"f{i}", os.urandom(50 + i))
-        patches, _ = load_nutrients(self.config(width=30.0, height=20.0))
+        patches, _ = load_nutrients(self.config(width=30.0, height=20.0, nutrient_release_rate=0.0))
         for p in patches:
             self.assertTrue(0.0 <= p.x < 30.0 and 0.0 <= p.y < 20.0)
             self.assertEqual((p.regen, p.capacity), (0.0, p.energy))
@@ -120,7 +120,7 @@ class SimulationTests(NutrientDirTestCase):
         a.run(1500)
         b.run(1500)
         self.assertEqual(a.state_digest(), b.state_digest())
-        self.assertTrue(all(r.energy > 0.0 or r.regen > 0.0 for r in a.world.resources))
+        self.assertTrue(all(not r.exhausted for r in a.world.resources))
 
     def test_run_record_contains_manifest(self):
         self.write("a", b"hello world " * 20)
@@ -138,7 +138,7 @@ class ChunkTests(NutrientDirTestCase):
     def test_large_file_is_spread_over_chunks(self):
         data = os.urandom(10_000)
         self.write("big", data)
-        patches, manifest = load_nutrients(self.config(nutrient_chunk_bytes=4000))
+        patches, manifest = load_nutrients(self.config(nutrient_chunk_bytes=4000, nutrient_release_rate=0.0))
         self.assertEqual(len(patches), 3)
         self.assertEqual(manifest["files"][0]["chunks"], 3)
         cfg = SimulationConfig()
@@ -157,7 +157,7 @@ class ChunkTests(NutrientDirTestCase):
 class ReleaseTests(NutrientDirTestCase):
     def test_release_exposes_a_capacity_and_keeps_the_rest_in_reserve(self):
         self.write("a", os.urandom(5_000))
-        total = load_nutrients(self.config())[0][0].energy
+        total = load_nutrients(self.config(nutrient_release_rate=0.0))[0][0].energy
         (p,), _ = load_nutrients(self.config(nutrient_release_rate=0.5, nutrient_release_capacity=10.0))
         self.assertEqual((p.energy, p.capacity, p.regen), (10.0, 10.0, 0.5))
         self.assertAlmostEqual(p.energy + p.reservoir, total)
@@ -191,6 +191,14 @@ class ReleaseTests(NutrientDirTestCase):
         self.assertEqual(a.state_digest(), b.state_digest())
         self.assertLess(population_metrics(a)["finite_substrate_energy"], start)
         self.assertTrue(all(not r.exhausted for r in a.world.resources))
+
+    def test_slow_release_is_the_default_and_immediate_release_remains_available(self):
+        self.write("a", os.urandom(5_000))
+        (slow,), _ = load_nutrients(self.config())
+        (fast,), _ = load_nutrients(self.config(nutrient_release_rate=0.0))
+        self.assertEqual((slow.regen, slow.capacity), (0.4, 30.0))
+        self.assertAlmostEqual(slow.energy + slow.reservoir, fast.energy)
+        self.assertEqual((fast.regen, fast.reservoir), (0.0, None))
 
     def test_negative_release_rate_is_rejected(self):
         with self.assertRaises(ValueError):

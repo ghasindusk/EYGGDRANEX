@@ -65,9 +65,10 @@ class SimulationConfig:
     # 0 = one patch per file; otherwise each file is split into chunks of this many bytes,
     # each its own patch with its own energy and content-derived position.
     nutrient_chunk_bytes: int = 0
-    # 0 = all energy is exposed at once; otherwise a nutrient exposes at most
-    # nutrient_release_capacity and refills it by this much per tick from its finite supply.
-    nutrient_release_rate: float = 0.0
+    # A nutrient exposes at most nutrient_release_capacity and refills it by this much per
+    # tick from its finite supply (slow release, the default). 0 = all energy exposed at once.
+    # Hypothesis: chosen near the regen/capacity of ordinary patches (experiments/nutrients).
+    nutrient_release_rate: float = 0.4
     nutrient_release_capacity: float = 30.0
     nutrient_max_files: int = 1000
     nutrient_max_bytes: int = 1_000_000  # bytes read from each file
