@@ -61,6 +61,8 @@ eyggnx --nutrient-dir path/to/data --steps 3000 --format record
 
 大きなファイルを世界に散らす（`nutrient_chunk_bytes`）、餌を少しずつ放出する速さ（`nutrient_release_rate`、既定 0.4。0 で一度に全部）の設定もあります。どちらも実験 JSON の `"model"` で指定します。
 
+餌には中身の形式（先頭バイトの署名）から決まる属性があり、たとえば zip は栄養が 1.25 倍・消化の速さが半分になります。係数は `nutrient_attributes` で変えられます。
+
 ### Current limitations
 
 - 採餌制御器のパラメータは遺伝するが、スコア関数の形は固定である（`docs/specifications/ORGANISM_SPEC.md`）。

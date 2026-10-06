@@ -14,12 +14,13 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest import mock
 import zlib
 
 from eyggnx import cli
 from eyggnx.config import SimulationConfig
-from eyggnx.nutrients import load_nutrients, nutrient_energy
+from eyggnx.nutrients import load_nutrients, nutrient_category, nutrient_energy
 from eyggnx.recorder import population_metrics
 from eyggnx.simulation import Simulation
 from eyggnx.world import ResourcePatch
@@ -63,7 +64,8 @@ class LoadingTests(NutrientDirTestCase):
         repetitive, noisy = b"a" * 10_000, os.urandom(10_000)
         self.assertLess(nutrient_energy(repetitive, cfg), nutrient_energy(noisy, cfg))
         self.assertAlmostEqual(nutrient_energy(repetitive, cfg), len(zlib.compress(repetitive, 9)) * 0.01)
-        self.assertEqual(nutrient_energy(os.urandom(100_000), cfg), cfg.nutrient_max_energy)
+        self.assertEqual(nutrient_energy(os.urandom(100_000), SimulationConfig(nutrient_max_energy=200.0)), 200.0)
+        self.assertLess(nutrient_energy(os.urandom(100_000), cfg), cfg.nutrient_max_energy)
         self.assertEqual(nutrient_energy(b"", cfg), 0.0)
 
     def test_names_and_extensions_do_not_matter(self):
@@ -96,6 +98,22 @@ class LoadingTests(NutrientDirTestCase):
         self.assertEqual(first, load_nutrients(self.config())[1]["digest"])
         self.write("a", b"two" * 30)
         self.assertNotEqual(first, load_nutrients(self.config())[1]["digest"])
+
+    def test_unreadable_files_are_skipped_and_listed(self):
+        self.write("good", b"some text " * 20)
+        self.write("placeholder.gdoc", b"x")
+        real_open = open
+
+        def fake_open(path, *args, **kwargs):
+            if str(path).endswith("placeholder.gdoc"):
+                raise OSError(22, "Invalid argument")
+            return real_open(path, *args, **kwargs)
+
+        with mock.patch("builtins.open", fake_open):
+            patches, manifest = load_nutrients(self.config())
+        self.assertEqual([f["name"] for f in manifest["files"]], ["good"])
+        self.assertEqual(manifest["unreadable"], ["placeholder.gdoc"])
+        self.assertEqual(len(patches), 1)
 
     def test_missing_directory_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -154,9 +172,27 @@ class ChunkTests(NutrientDirTestCase):
         self.assertNotIn("chunks", manifest["files"][0])
 
 
+    def test_split_energy_splits_only_large_files(self):
+        self.write("big", os.urandom(30_000))   # about 300 energy as one patch
+        self.write("small", os.urandom(5_000))  # about 50
+        cfg = self.config(nutrient_split_energy=100.0, nutrient_release_rate=0.0)
+        patches, manifest = load_nutrients(cfg)
+        by_name = {f["name"]: f for f in manifest["files"]}
+        self.assertNotIn("chunks", by_name["small"])
+        self.assertGreaterEqual(by_name["big"]["chunks"], 3)
+        self.assertEqual(len(patches), by_name["big"]["chunks"] + 1)
+        self.assertTrue(all(p.energy <= 110.0 for p in patches))
+        whole = load_nutrients(self.config(nutrient_release_rate=0.0))[1]["files"]
+        self.assertAlmostEqual(sum(f["energy"] for f in manifest["files"]), sum(f["energy"] for f in whole), delta=10.0)
+
+    def test_split_energy_rejects_negative(self):
+        with self.assertRaises(ValueError):
+            SimulationConfig(nutrient_split_energy=-1.0)
+
+
 class ReleaseTests(NutrientDirTestCase):
     def test_release_exposes_a_capacity_and_keeps_the_rest_in_reserve(self):
-        self.write("a", os.urandom(5_000))
+        self.write("a", os.urandom(2_500).hex().encode())  # text: digestibility 1
         total = load_nutrients(self.config(nutrient_release_rate=0.0))[0][0].energy
         (p,), _ = load_nutrients(self.config(nutrient_release_rate=0.5, nutrient_release_capacity=10.0))
         self.assertEqual((p.energy, p.capacity, p.regen), (10.0, 10.0, 0.5))
@@ -193,7 +229,7 @@ class ReleaseTests(NutrientDirTestCase):
         self.assertTrue(all(not r.exhausted for r in a.world.resources))
 
     def test_slow_release_is_the_default_and_immediate_release_remains_available(self):
-        self.write("a", os.urandom(5_000))
+        self.write("a", os.urandom(2_500).hex().encode())  # text: digestibility 1
         (slow,), _ = load_nutrients(self.config())
         (fast,), _ = load_nutrients(self.config(nutrient_release_rate=0.0))
         self.assertEqual((slow.regen, slow.capacity), (0.4, 30.0))
@@ -203,6 +239,66 @@ class ReleaseTests(NutrientDirTestCase):
     def test_negative_release_rate_is_rejected(self):
         with self.assertRaises(ValueError):
             SimulationConfig(nutrient_release_rate=-0.1)
+
+
+class CategoryTests(NutrientDirTestCase):
+    def test_category_comes_from_content_signatures(self):
+        cases = {
+            b"PK\x03\x04" + os.urandom(50): "archive",
+            b"\x1f\x8b\x08" + os.urandom(50): "archive",
+            b"\x89PNG\r\n\x1a\n" + os.urandom(50): "image",
+            b"\xff\xd8\xff\xe0" + os.urandom(50): "image",
+            b"RIFF\x00\x00\x00\x00WEBPVP8 ": "image",
+            b"RIFF\x00\x00\x00\x00WAVEfmt ": "media",
+            b"\x00\x00\x00\x18ftypmp42": "media",
+            b"%PDF-1.7\n": "document",
+            b"\x7fELF\x02\x01": "executable",
+            "日本語のテキスト\n".encode(): "text",
+            b"plain ascii": "text",
+            b"\xff\xfe\x00\x01 not utf-8": "binary",
+            b"abc\x00def": "binary",
+        }
+        for data, expected in cases.items():
+            with self.subTest(data=data[:12]):
+                self.assertEqual(nutrient_category(data), expected)
+
+    def test_utf8_cut_by_the_byte_limit_is_still_text(self):
+        self.assertEqual(nutrient_category("あいう".encode()[:-1]), "text")
+
+    def test_extension_does_not_change_the_category(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("inner.txt", "hello " * 200)
+        self.write("archive.txt", buf.getvalue())
+        self.write("notes.zip", b"just some text " * 30)
+        _, manifest = load_nutrients(self.config())
+        cats = {f["name"]: f["category"] for f in manifest["files"]}
+        self.assertEqual(cats, {"archive.txt": "archive", "notes.zip": "text"})
+
+    def test_attributes_scale_energy_and_release(self):
+        payload = os.urandom(2_000)
+        self.write("a.bin", b"PK\x03\x04" + payload)
+        (patch,), manifest = load_nutrients(self.config())
+        info = manifest["files"][0]
+        self.assertEqual((info["category"], info["energy_factor"], info["digestibility"]), ("archive", 1.25, 0.5))
+        cfg = SimulationConfig()
+        self.assertAlmostEqual(info["energy"], nutrient_energy(b"PK\x03\x04" + payload, cfg, 1.25))
+        self.assertAlmostEqual(patch.regen, cfg.nutrient_release_rate * 0.5)
+
+    def test_attributes_can_be_overridden(self):
+        self.write("a.bin", b"PK\x03\x04" + os.urandom(500))
+        cfg = self.config(nutrient_attributes={"archive": {"energy": 2.0}})
+        (patch,), manifest = load_nutrients(cfg)
+        self.assertEqual((manifest["files"][0]["energy_factor"], manifest["files"][0]["digestibility"]), (2.0, 0.5))
+        for bad in ({"zip": {"energy": 1.0}}, {"archive": {"speed": 1.0}}, {"archive": {"energy": 0.0}}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                SimulationConfig(nutrient_attributes=bad)
+
+    def test_attributes_round_trip_through_experiment_json(self):
+        from eyggnx.config import ExperimentSpec
+        spec = ExperimentSpec.from_dict({"model": {"nutrient_attributes": {"text": {"digestibility": 0.25}}}})
+        self.assertEqual(spec.config.nutrient_attributes_for("text"), {"energy": 1.0, "digestibility": 0.25})
+        self.assertEqual(ExperimentSpec.from_dict(json.loads(json.dumps(spec.to_dict()))), spec)
 
 
 if __name__ == "__main__":

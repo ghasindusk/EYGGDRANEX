@@ -23,7 +23,15 @@
 - Nutrient chunking and slow release: `nutrient_chunk_bytes > 0` splits each file into chunks that become separate patches (energy, cap and position per chunk); `nutrient_release_rate > 0` keeps a nutrient's energy in a finite `ResourcePatch.reservoir` and exposes at most `nutrient_release_capacity`, refilled at that rate per tick. Both are off by default, and nutrient runs without them are bit-identical to before (the reservoir enters `state_digest()` only when set). Recorder timeseries gain `finite_substrate_energy`.
 - `python -m eyggnx` runs the CLI.
 
+- Nutrient attributes: each nutrient file is classified from its content's leading bytes (format signatures; never the file name or extension) as `text`, `archive`, `image`, `media`, `document`, `executable` or `binary`. The category sets an `energy` factor (energy = factor × compressed size × `nutrient_energy_per_byte`; archive 1.25) and a `digestibility` factor on the release rate (archive, image, media 0.5; document, executable, binary 0.75; text 1.0). Overridable per category via `nutrient_attributes`; recorded in the manifest. Archives are never unpacked. Invariant #2 is revised to allow a property table for substrates (organisms never branch on it). Nutrient runs with only text files are unchanged; runs with binary files change.
+
+- Large nutrient files are split by default: a file whose energy exceeds `nutrient_split_energy` (2,000) is split into the fewest equal chunks of about that energy, each its own patch; smaller files stay whole. Set it to 0 to keep every file whole.
+
+### Fixed
+- Loading nutrients no longer fails when a file in the directory cannot be read (e.g. Google Drive `.gdoc` placeholders); such files are skipped and listed under `unreadable` in the manifest.
+
 ### Changed
+- `nutrient_max_energy` default 200 → 10,000: the cap now binds only near the 1,000,000-byte read limit, so larger documents give more energy (at 200, every 28 KB–3 MB docx was capped at the same value).
 - External data nutrients release their energy slowly by default (`nutrient_release_rate = 0.4`, `nutrient_release_capacity = 30`): exposing everything at once produced a boom and crash (`experiments/nutrients/README.md`). `nutrient_release_rate = 0` restores immediate release. Runs without `nutrient_dir` and their golden digests are unchanged.
 - Detritus: with `detritus_fraction > 0`, an organism dying of age leaves part of its energy as a decaying, non-renewable patch (`configs/detritus_genesis.json`). Off by default.
 - `python -m eyggnx.stability`: long-run, multi-seed stability runs with structural invariant checks (finite energy, positions, resource capacity, population accounting, unique ids) and per-seed summaries; `--config` selects a model. `tests/test_stability.py` runs 2 seeds × 3,000 ticks.

@@ -19,13 +19,26 @@ experiment. Fields are grouped by what they are:
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 import json
 import math
 from pathlib import Path
 from typing import Any
 
 from .validation import finite_range, non_negative_int, positive_finite
+
+#: Default properties of external data nutrients by content category (see eyggnx.nutrients).
+#: ``energy`` multiplies the information-based energy; ``digestibility`` multiplies the
+#: release rate. Hypotheses: already-compressed containers are rich but slow to digest.
+NUTRIENT_ATTRIBUTES: dict[str, dict[str, float]] = {
+    "text": {"energy": 1.0, "digestibility": 1.0},
+    "archive": {"energy": 1.25, "digestibility": 0.5},
+    "image": {"energy": 1.0, "digestibility": 0.5},
+    "media": {"energy": 1.0, "digestibility": 0.5},
+    "document": {"energy": 1.0, "digestibility": 0.75},
+    "executable": {"energy": 1.0, "digestibility": 0.75},
+    "binary": {"energy": 1.0, "digestibility": 0.75},
+}
 
 #: Version of the simulation semantics. Bump it whenever the same seed and
 #: configuration would produce a different trajectory.
@@ -61,15 +74,23 @@ class SimulationConfig:
     # non-renewable food patches. None = off. Only the bytes are read; nothing is executed.
     nutrient_dir: str | None = None
     nutrient_energy_per_byte: float = 0.01  # energy per byte of zlib-compressed data
-    nutrient_max_energy: float = 200.0  # cap per patch (a whole file, or one chunk)
+    # Cap per patch (a whole file, or one chunk). 1,000,000 bytes read give at most about
+    # 12,500 (archive), so the cap binds only near the read limit and file size still counts.
+    nutrient_max_energy: float = 10_000.0
     # 0 = one patch per file; otherwise each file is split into chunks of this many bytes,
     # each its own patch with its own energy and content-derived position.
     nutrient_chunk_bytes: int = 0
+    # A file whose energy exceeds this is split into the fewest equal chunks that bring each
+    # near or below it, so large files can be eaten at several places; smaller files stay
+    # whole. 0 = off. Hypothesis: 2,000 balanced large and small files (experiments/nutrients).
+    nutrient_split_energy: float = 2_000.0
     # A nutrient exposes at most nutrient_release_capacity and refills it by this much per
     # tick from its finite supply (slow release, the default). 0 = all energy exposed at once.
     # Hypothesis: chosen near the regen/capacity of ordinary patches (experiments/nutrients).
     nutrient_release_rate: float = 0.4
     nutrient_release_capacity: float = 30.0
+    # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
+    nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
     nutrient_max_files: int = 1000
     nutrient_max_bytes: int = 1_000_000  # bytes read from each file
     # Experiment control: False = fixed-genome control, children copy the parent genome exactly
@@ -100,10 +121,22 @@ class SimulationConfig:
         non_negative_int("nutrient_max_files", self.nutrient_max_files)
         non_negative_int("nutrient_max_bytes", self.nutrient_max_bytes)
         non_negative_int("nutrient_chunk_bytes", self.nutrient_chunk_bytes)
+        split = self.nutrient_split_energy
+        if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
+            raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")
         rate = self.nutrient_release_rate
         if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate) or rate < 0:
             raise ValueError(f"nutrient_release_rate must be finite and >= 0, got {rate}")
         positive_finite("nutrient_release_capacity", self.nutrient_release_capacity)
+        if not isinstance(self.nutrient_attributes, dict):
+            raise TypeError("nutrient_attributes must be a mapping of category to attributes")
+        for category, attrs in self.nutrient_attributes.items():
+            if category not in NUTRIENT_ATTRIBUTES:
+                raise ValueError(f"unknown nutrient category {category!r}; known: {sorted(NUTRIENT_ATTRIBUTES)}")
+            if not isinstance(attrs, dict) or not set(attrs) <= {"energy", "digestibility"}:
+                raise ValueError(f"nutrient_attributes[{category!r}] may set only 'energy' and 'digestibility'")
+            for name, value in attrs.items():
+                positive_finite(f"nutrient_attributes[{category!r}][{name!r}]", value)
         if not (isinstance(self.detritus_fraction, (int, float)) and 0.0 <= self.detritus_fraction <= 1.0):
             raise ValueError(f"detritus_fraction must be in [0, 1], got {self.detritus_fraction}")
         if not isinstance(self.mutate_offspring, bool):
@@ -111,6 +144,10 @@ class SimulationConfig:
 
     def to_dict(self) -> dict[str, Any]:
         return {k: list(v) if isinstance(v, tuple) else v for k, v in asdict(self).items()}
+
+    def nutrient_attributes_for(self, category: str) -> dict[str, float]:
+        """Default attributes of ``category`` with this config's overrides applied."""
+        return {**NUTRIENT_ATTRIBUTES[category], **self.nutrient_attributes.get(category, {})}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SimulationConfig":
