@@ -16,6 +16,8 @@ interpreted, and nothing is fetched from the network.
   placeholders, locked files) are skipped and listed under ``unreadable``.
 * Patches: one per file, or, with ``nutrient_chunk_bytes > 0``, one per chunk of that
   many bytes, so a large file is spread over the world instead of sitting in one spot.
+  With ``nutrient_split_energy > 0`` only files whose energy exceeds it are split, into
+  the fewest equal chunks of about that energy; smaller files stay whole.
 * Category: read from the content's leading bytes (format signatures such as ``PK``
   for zip or ``%PDF-``), never from the file name or extension, so renaming a file
   changes nothing. Valid UTF-8 without NUL bytes is ``text``; anything unrecognised is
@@ -41,6 +43,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -137,6 +140,11 @@ def load_nutrients(config: SimulationConfig) -> tuple[list[ResourcePatch], dict[
         attrs = config.nutrient_attributes_for(category)
         energy = 0.0
         pieces = chunks(data, config.nutrient_chunk_bytes)
+        split = config.nutrient_split_energy
+        if split > 0.0 and len(pieces) == 1:
+            whole = nutrient_energy(data, config, attrs["energy"])
+            if whole > split:
+                pieces = chunks(data, math.ceil(len(data) / math.ceil(whole / split)))
         for piece in pieces:
             piece_energy = nutrient_energy(piece, config, attrs["energy"])
             if piece_energy > 0.0:
@@ -147,7 +155,7 @@ def load_nutrients(config: SimulationConfig) -> tuple[list[ResourcePatch], dict[
                   "bytes_read": len(data), "sha256": hashlib.sha256(data).hexdigest(),
                   "category": category, "energy_factor": attrs["energy"],
                   "digestibility": attrs["digestibility"], "energy": energy}
-        if config.nutrient_chunk_bytes > 0:
+        if config.nutrient_chunk_bytes > 0 or len(pieces) > 1:
             record["chunks"] = len(pieces) if data else 0
         files.append(record)
     manifest_digest = hashlib.sha256(

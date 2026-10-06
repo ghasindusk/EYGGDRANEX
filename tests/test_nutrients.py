@@ -172,6 +172,24 @@ class ChunkTests(NutrientDirTestCase):
         self.assertNotIn("chunks", manifest["files"][0])
 
 
+    def test_split_energy_splits_only_large_files(self):
+        self.write("big", os.urandom(30_000))   # about 300 energy as one patch
+        self.write("small", os.urandom(5_000))  # about 50
+        cfg = self.config(nutrient_split_energy=100.0, nutrient_release_rate=0.0)
+        patches, manifest = load_nutrients(cfg)
+        by_name = {f["name"]: f for f in manifest["files"]}
+        self.assertNotIn("chunks", by_name["small"])
+        self.assertGreaterEqual(by_name["big"]["chunks"], 3)
+        self.assertEqual(len(patches), by_name["big"]["chunks"] + 1)
+        self.assertTrue(all(p.energy <= 110.0 for p in patches))
+        whole = load_nutrients(self.config(nutrient_release_rate=0.0))[1]["files"]
+        self.assertAlmostEqual(sum(f["energy"] for f in manifest["files"]), sum(f["energy"] for f in whole), delta=10.0)
+
+    def test_split_energy_rejects_negative(self):
+        with self.assertRaises(ValueError):
+            SimulationConfig(nutrient_split_energy=-1.0)
+
+
 class ReleaseTests(NutrientDirTestCase):
     def test_release_exposes_a_capacity_and_keeps_the_rest_in_reserve(self):
         self.write("a", os.urandom(2_500).hex().encode())  # text: digestibility 1

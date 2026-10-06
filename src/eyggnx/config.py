@@ -80,6 +80,10 @@ class SimulationConfig:
     # 0 = one patch per file; otherwise each file is split into chunks of this many bytes,
     # each its own patch with its own energy and content-derived position.
     nutrient_chunk_bytes: int = 0
+    # A file whose energy exceeds this is split into the fewest equal chunks that bring each
+    # near or below it, so large files can be eaten at several places; smaller files stay
+    # whole. 0 = off. Hypothesis: 2,000 balanced large and small files (experiments/nutrients).
+    nutrient_split_energy: float = 2_000.0
     # A nutrient exposes at most nutrient_release_capacity and refills it by this much per
     # tick from its finite supply (slow release, the default). 0 = all energy exposed at once.
     # Hypothesis: chosen near the regen/capacity of ordinary patches (experiments/nutrients).
@@ -117,6 +121,9 @@ class SimulationConfig:
         non_negative_int("nutrient_max_files", self.nutrient_max_files)
         non_negative_int("nutrient_max_bytes", self.nutrient_max_bytes)
         non_negative_int("nutrient_chunk_bytes", self.nutrient_chunk_bytes)
+        split = self.nutrient_split_energy
+        if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
+            raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")
         rate = self.nutrient_release_rate
         if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not math.isfinite(rate) or rate < 0:
             raise ValueError(f"nutrient_release_rate must be finite and >= 0, got {rate}")

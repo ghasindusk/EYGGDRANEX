@@ -25,6 +25,8 @@
 
 - Nutrient attributes: each nutrient file is classified from its content's leading bytes (format signatures; never the file name or extension) as `text`, `archive`, `image`, `media`, `document`, `executable` or `binary`. The category sets an `energy` factor (energy = factor × compressed size × `nutrient_energy_per_byte`; archive 1.25) and a `digestibility` factor on the release rate (archive, image, media 0.5; document, executable, binary 0.75; text 1.0). Overridable per category via `nutrient_attributes`; recorded in the manifest. Archives are never unpacked. Invariant #2 is revised to allow a property table for substrates (organisms never branch on it). Nutrient runs with only text files are unchanged; runs with binary files change.
 
+- Large nutrient files are split by default: a file whose energy exceeds `nutrient_split_energy` (2,000) is split into the fewest equal chunks of about that energy, each its own patch; smaller files stay whole. Set it to 0 to keep every file whole.
+
 ### Fixed
 - Loading nutrients no longer fails when a file in the directory cannot be read (e.g. Google Drive `.gdoc` placeholders); such files are skipped and listed under `unreadable` in the manifest.
 
