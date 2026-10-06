@@ -109,6 +109,23 @@ def nutrient_patch(x: float, y: float, energy: float, config: SimulationConfig,
     return ResourcePatch(x, y, exposed, config.nutrient_release_capacity, rate, energy - exposed)
 
 
+def respawned_patch(template: ResourcePatch, x: float, y: float, energy: float) -> ResourcePatch:
+    """A nutrient holding ``energy`` with the release properties of ``template``."""
+    if template.reservoir is None:
+        return ResourcePatch(x, y, energy, energy, 0.0)
+    exposed = min(energy, template.capacity)
+    return ResourcePatch(x, y, exposed, template.capacity, template.regen, energy - exposed)
+
+
+def far_position(x: float, y: float, energy: float, width: float, height: float) -> tuple[float, float]:
+    """About the opposite side of the (toroidal) world from ``(x, y)``, offset by up to an
+    eighth of the world in each axis by a hash of the position and energy. No random numbers."""
+    digest = hashlib.sha256(f"eyggnx:respawn:{x.hex()}:{y.hex()}:{energy.hex()}".encode()).digest()
+    jx = (int.from_bytes(digest[0:8], "big") / 2.0**64 - 0.5) * width / 4.0
+    jy = (int.from_bytes(digest[8:16], "big") / 2.0**64 - 0.5) * height / 4.0
+    return (x + width / 2.0 + jx) % width, (y + height / 2.0 + jy) % height
+
+
 def chunks(data: bytes, size: int) -> list[bytes]:
     if size <= 0 or len(data) <= size:
         return [data]

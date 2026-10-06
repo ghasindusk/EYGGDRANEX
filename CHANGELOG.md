@@ -29,6 +29,8 @@
 
 - Periodic nutrient regrowth: with `nutrient_regrow_interval > 0`, every that many ticks all external data nutrients are restored to their loaded energy, and eaten-up ones reappear at the same place. Off by default.
 
+- Split respawn of eaten-up nutrients (experimental): with `nutrient_respawn_delay > 0`, a nutrient that was eaten up comes back that many ticks later, half of its starting energy at the same place and half far away (about the opposite side of the world, offset by a hash of position and energy; no random numbers). Respawned nutrients do the same when eaten up; a half below `nutrient_respawn_min_energy` (10) is not split. Cannot be combined with `nutrient_regrow_interval`. Off by default.
+
 ### Fixed
 - Loading nutrients no longer fails when a file in the directory cannot be read (e.g. Google Drive `.gdoc` placeholders); such files are skipped and listed under `unreadable` in the manifest.
 

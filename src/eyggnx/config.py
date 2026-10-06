@@ -92,6 +92,13 @@ class SimulationConfig:
     # 0 = off; otherwise every this many ticks all external data nutrients are restored to
     # their loaded energy (eaten-up ones reappear at the same place): food that comes back.
     nutrient_regrow_interval: int = 0
+    # 0 = off; otherwise an eaten-up external data nutrient comes back this many ticks later:
+    # half of its energy at the same place, half far away (about the opposite side of the
+    # world, offset by a hash of the position). Each new patch does the same when eaten up.
+    # A half below nutrient_respawn_min_energy is not split: everything returns in place.
+    # Cannot be combined with nutrient_regrow_interval.
+    nutrient_respawn_delay: int = 0
+    nutrient_respawn_min_energy: float = 10.0
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
     nutrient_max_files: int = 1000
@@ -125,6 +132,10 @@ class SimulationConfig:
         non_negative_int("nutrient_max_bytes", self.nutrient_max_bytes)
         non_negative_int("nutrient_chunk_bytes", self.nutrient_chunk_bytes)
         non_negative_int("nutrient_regrow_interval", self.nutrient_regrow_interval)
+        non_negative_int("nutrient_respawn_delay", self.nutrient_respawn_delay)
+        if self.nutrient_regrow_interval > 0 and self.nutrient_respawn_delay > 0:
+            raise ValueError("nutrient_regrow_interval and nutrient_respawn_delay cannot both be set")
+        positive_finite("nutrient_respawn_min_energy", self.nutrient_respawn_min_energy)
         split = self.nutrient_split_energy
         if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
             raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")

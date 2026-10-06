@@ -15,7 +15,7 @@ from typing import Protocol
 from .config import SimulationConfig
 from .controller import DEFAULT_CONTROLLER, Controller
 from .genome import Genome
-from .nutrients import load_nutrients
+from .nutrients import far_position, load_nutrients, respawned_patch
 from .organism import Organism, basal_metabolism
 from .validation import non_negative_int, positive_finite
 from .world import ResourcePatch, World
@@ -89,6 +89,12 @@ class Simulation:
         self._nutrient_patches = nutrients
         for patch in nutrients:
             self.world.add_resource(patch)
+        # Respawn (nutrient_respawn_delay): live nutrients with the total energy they started
+        # with, and eaten-up ones waiting to come back as (due tick, patch, total energy).
+        self._respawn_tracked: list[tuple[ResourcePatch, float]] = []
+        self._respawn_pending: list[tuple[int, ResourcePatch, float]] = []
+        if config.nutrient_respawn_delay > 0:
+            self._respawn_tracked = [(p, p.energy + (p.reservoir or 0.0)) for p in nutrients]
         self.controller: Controller = DEFAULT_CONTROLLER
         self.tick_index = 0
         self.births_total = 0
@@ -114,6 +120,8 @@ class Simulation:
         interval = self.config.nutrient_regrow_interval
         if interval > 0 and self.tick_index % interval == 0:
             self._regrow_nutrients()
+        if self.config.nutrient_respawn_delay > 0:
+            self._respawn_nutrients()
         observer = self.observer
         self.organisms.sort(key=lambda o: o.oid)
         organisms = self.organisms
@@ -169,6 +177,38 @@ class Simulation:
             if id(patch) not in present:
                 self.world.add_resource(patch)
 
+    def _respawn_nutrients(self) -> None:
+        """Bring eaten-up nutrients back after ``nutrient_respawn_delay`` ticks (a supply event).
+
+        A nutrient removed from the world since the last tick was eaten up. Half of the
+        energy it started with is scheduled at the same place and half far away; a half
+        below ``nutrient_respawn_min_energy`` is not split. Scheduled patches whose time
+        has come are added in the order they were scheduled. No random numbers are drawn.
+        """
+        cfg, world = self.config, self.world
+        present = {id(r) for r in world.resources}
+        due = self.tick_index + cfg.nutrient_respawn_delay
+        kept: list[tuple[ResourcePatch, float]] = []
+        for patch, total in self._respawn_tracked:
+            if id(patch) in present:
+                kept.append((patch, total))
+                continue
+            half = total / 2.0
+            if half < cfg.nutrient_respawn_min_energy:
+                self._respawn_pending.append((due, respawned_patch(patch, patch.x, patch.y, total), total))
+                continue
+            fx, fy = far_position(patch.x, patch.y, total, world.width, world.height)
+            self._respawn_pending.append((due, respawned_patch(patch, patch.x, patch.y, half), half))
+            self._respawn_pending.append((due, respawned_patch(patch, fx, fy, half), half))
+        waiting: list[tuple[int, ResourcePatch, float]] = []
+        for entry in self._respawn_pending:
+            if entry[0] <= self.tick_index:
+                world.add_resource(entry[1])
+                kept.append((entry[1], entry[2]))
+            else:
+                waiting.append(entry)
+        self._respawn_tracked, self._respawn_pending = kept, waiting
+
     def _resolve_feeding(self, organisms: list[Organism]) -> float:
         """Each organism eats from its nearest patch in contact range; contested patches
         are shared equally, so no organism has priority. Returns the energy eaten."""
@@ -222,6 +262,12 @@ class Simulation:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
             # Appended only when set, so digests of runs without reservoirs are unchanged.
             parts.append(part if r.reservoir is None else part + (r.reservoir.hex(),))
+        if self.config.nutrient_respawn_delay > 0:
+            # Only with respawn on, so digests of other runs are unchanged.
+            parts.append(("RS", tuple(total.hex() for _, total in self._respawn_tracked), tuple(
+                (due, p.x.hex(), p.y.hex(), p.energy.hex(), p.capacity.hex(), p.regen.hex(),
+                 None if p.reservoir is None else p.reservoir.hex(), total.hex())
+                for due, p, total in self._respawn_pending)))
         parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
         for name in RNG_STREAMS:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))

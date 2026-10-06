@@ -341,5 +341,87 @@ class RegrowthTests(NutrientDirTestCase):
             SimulationConfig(nutrient_regrow_interval=-1)
 
 
+class RespawnTests(NutrientDirTestCase):
+    def eat_up(self, patch):
+        patch.energy = 0.0
+        if patch.reservoir is not None:
+            patch.reservoir = 0.0
+
+    def test_eaten_nutrient_returns_half_in_place_and_half_far_away(self):
+        self.write("a", os.urandom(8_000).hex().encode())
+        sim = Simulation(seed=1, population=0, config=self.config(resource_patches=0, nutrient_respawn_delay=5))
+        (patch,) = sim.world.resources
+        total = patch.energy + patch.reservoir
+        self.eat_up(patch)
+        sim.tick()  # removed; respawn scheduled for tick 1 + 5
+        self.assertEqual(sim.world.resources, [])
+        for _ in range(4):
+            sim.tick()
+        self.assertEqual(sim.world.resources, [])
+        sim.tick()
+        same, far = sim.world.resources
+        self.assertEqual((same.x, same.y), (patch.x, patch.y))
+        for p in (same, far):
+            self.assertAlmostEqual(p.energy + p.reservoir, total / 2.0)
+            self.assertEqual((p.capacity, p.regen), (patch.capacity, patch.regen))
+        # Far: at least a quarter of the world away on each axis (half minus an eighth jitter).
+        dx, dy = sim.world.delta(patch.x, patch.y, far.x, far.y)
+        self.assertGreaterEqual(abs(dx), sim.world.width * 3 / 8 - 1e-9)
+        self.assertGreaterEqual(abs(dy), sim.world.height * 3 / 8 - 1e-9)
+
+    def test_respawned_nutrients_split_again_until_the_minimum(self):
+        self.write("a", os.urandom(8_000).hex().encode())
+        cfg = self.config(resource_patches=0, nutrient_respawn_delay=1, nutrient_respawn_min_energy=1e9)
+        sim = Simulation(seed=1, population=0, config=cfg)
+        (patch,) = sim.world.resources
+        total = patch.energy + patch.reservoir
+        self.eat_up(patch)
+        sim.tick()
+        sim.tick()
+        (back,) = sim.world.resources  # half below the minimum: everything in place
+        self.assertEqual((back.x, back.y), (patch.x, patch.y))
+        self.assertAlmostEqual(back.energy + back.reservoir, total)
+
+    def test_immediate_release_nutrients_respawn_without_reservoir(self):
+        self.write("a", os.urandom(8_000).hex().encode())
+        cfg = self.config(resource_patches=0, nutrient_respawn_delay=1, nutrient_release_rate=0.0)
+        sim = Simulation(seed=1, population=0, config=cfg)
+        (patch,) = sim.world.resources
+        total = patch.energy
+        self.eat_up(patch)
+        sim.tick()
+        sim.tick()
+        self.assertEqual(len(sim.world.resources), 2)
+        for p in sim.world.resources:
+            self.assertIsNone(p.reservoir)
+            self.assertEqual((p.energy, p.capacity, p.regen), (total / 2.0, total / 2.0, 0.0))
+
+    def test_respawn_is_deterministic_off_by_default_and_exclusive_with_regrowth(self):
+        for i in range(5):
+            self.write(f"f{i}", os.urandom(600))
+        self.assertEqual(SimulationConfig().nutrient_respawn_delay, 0)
+        cfg = self.config(resource_patches=0, nutrient_respawn_delay=50)
+        a, b = (Simulation(seed=4, population=30, config=cfg) for _ in range(2))
+        a.run(400)
+        b.run(400)
+        self.assertEqual(a.state_digest(), b.state_digest())
+        with self.assertRaises(ValueError):
+            SimulationConfig(nutrient_respawn_delay=-1)
+        with self.assertRaises(ValueError):
+            SimulationConfig(nutrient_respawn_delay=10, nutrient_regrow_interval=10)
+
+    def test_pending_respawns_enter_the_digest(self):
+        self.write("a", os.urandom(8_000).hex().encode())
+        cfg = self.config(resource_patches=0, nutrient_respawn_delay=10)
+        a, b = (Simulation(seed=1, population=0, config=cfg) for _ in range(2))
+        self.eat_up(a.world.resources[0])
+        self.eat_up(b.world.resources[0])
+        a.tick()
+        b.tick()
+        self.assertEqual(a.state_digest(), b.state_digest())
+        b._respawn_pending[0][1].energy += 1.0
+        self.assertNotEqual(a.state_digest(), b.state_digest())
+
+
 if __name__ == "__main__":
     unittest.main()
