@@ -106,6 +106,21 @@ class SimulationConfig:
     # Experiment control: False = fixed-genome control, children copy the parent genome exactly
     # (founders still receive their one initial mutation). Changes the trajectory by design.
     mutate_offspring: bool = True
+    # Experimental evolution reward (off by default). It breaks invariants #1 (no explicit
+    # fitness) and #5 (no free lunch) on purpose; see docs/architecture/INVARIANTS.md.
+    # An organism "evolved" when its lifetime intake per tick at reproduction exceeds its
+    # parent's at the child's birth. Its children are strong (basal metabolism and birth
+    # mutation width scaled by the *_strong_* factors) and it has evolution_bonus_offspring
+    # extra children, each paid from its own energy. Children of an organism that did not
+    # evolve are weak (*_weak_* factors), and each birth fails with evolution_drop_probability
+    # (the energy given to the child is lost). Founders have no parent and reproduce normally.
+    evolution_reward: bool = False
+    evolution_strong_metabolism: float = 0.9
+    evolution_weak_metabolism: float = 1.1
+    evolution_strong_mutation: float = 1.2
+    evolution_weak_mutation: float = 0.8
+    evolution_bonus_offspring: int = 1
+    evolution_drop_probability: float = 0.25
 
     def __post_init__(self) -> None:
         positive_finite("width", self.width)
@@ -156,6 +171,15 @@ class SimulationConfig:
             raise ValueError(f"detritus_fraction must be in [0, 1], got {self.detritus_fraction}")
         if not isinstance(self.mutate_offspring, bool):
             raise TypeError("mutate_offspring must be a bool")
+        if not isinstance(self.evolution_reward, bool):
+            raise TypeError("evolution_reward must be a bool")
+        for name in ("evolution_strong_metabolism", "evolution_weak_metabolism",
+                     "evolution_strong_mutation", "evolution_weak_mutation"):
+            positive_finite(name, getattr(self, name))
+        non_negative_int("evolution_bonus_offspring", self.evolution_bonus_offspring)
+        p = self.evolution_drop_probability
+        if isinstance(p, bool) or not isinstance(p, (int, float)) or not 0.0 <= p <= 1.0:
+            raise ValueError(f"evolution_drop_probability must be in [0, 1], got {p}")
 
     def to_dict(self) -> dict[str, Any]:
         return {k: list(v) if isinstance(v, tuple) else v for k, v in asdict(self).items()}

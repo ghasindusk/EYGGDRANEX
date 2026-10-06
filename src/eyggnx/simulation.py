@@ -109,6 +109,11 @@ class Simulation:
             x, y = founders.random() * width, founders.random() * height
             energy = founders.uniform(*config.founder_energy_range)
             self.organisms.append(Organism(oid=i, x=x, y=y, energy=energy, genome=base.mutate(founders)))
+        # Experimental evolution reward: its own random stream (failed births), created only when
+        # enabled so that RNG_STREAMS and the digests of other runs are unchanged.
+        self._evolution_rng = derive_stream(seed, "evolution") if config.evolution_reward else None
+        #: Births under the evolution reward: evolved / not evolved parents, and failed births.
+        self.evolved_births = self.unevolved_births = self.failed_births = 0
         #: Optional observer (see ``eyggnx.recorder``). Observers must not mutate state or
         #: draw from the simulation's random streams; the trajectory is identical with or without one.
         self.observer: SimulationObserver | None = None
@@ -136,10 +141,15 @@ class Simulation:
         births: list[Organism] = []
         placement, mutation = self.rngs["placement"], self.rngs["mutation"]
         for organism in organisms:
-            if organism.can_reproduce():
-                child = organism.reproduce(self.next_id, world, placement, mutation)
-                births.append(child)
+            if not organism.can_reproduce():
+                continue
+            if self._evolution_rng is not None:
+                children = self._reproduce_with_reward(organism, placement, mutation)
+            else:
+                children = [organism.reproduce(self.next_id, world, placement, mutation)]
                 self.next_id += 1
+            for child in children:
+                births.append(child)
                 if observer is not None:
                     observer.on_birth(self.tick_index, child, organism)
 
@@ -162,6 +172,41 @@ class Simulation:
         if observer is not None:
             observer.on_tick(self)
         return self.snapshot()
+
+    def _reproduce_with_reward(self, parent: Organism, placement: random.Random,
+                               mutation: random.Random) -> list[Organism]:
+        """Experimental evolution reward (``evolution_reward``); breaks invariants #1 and #5.
+
+        Evolved (intake per tick above the parent's at birth): 1 + ``evolution_bonus_offspring``
+        strong children, each paid from the parent's energy in turn. Not evolved: one weak
+        child, which fails with ``evolution_drop_probability`` (the parent still pays and the
+        energy is lost). Founders reproduce normally.
+        """
+        cfg, world = self.config, self.world
+        if parent.parent_intake_rate is None:
+            child = parent.reproduce(self.next_id, world, placement, mutation)
+            self.next_id += 1
+            return [child]
+        if parent.intake_rate > parent.parent_intake_rate:
+            self.evolved_births += 1
+            children = []
+            for _ in range(1 + cfg.evolution_bonus_offspring):
+                children.append(parent.reproduce(
+                    self.next_id, world, placement, mutation,
+                    metabolism_factor=cfg.evolution_strong_metabolism,
+                    mutation_factor=cfg.evolution_strong_mutation))
+                self.next_id += 1
+            return children
+        self.unevolved_births += 1
+        if self._evolution_rng.random() < cfg.evolution_drop_probability:
+            self.failed_births += 1
+            parent.energy -= parent.energy * parent.genome.offspring_fraction
+            return []
+        child = parent.reproduce(self.next_id, world, placement, mutation,
+                                 metabolism_factor=cfg.evolution_weak_metabolism,
+                                 mutation_factor=cfg.evolution_weak_mutation)
+        self.next_id += 1
+        return [child]
 
     def _regrow_nutrients(self) -> None:
         """Restore every external data nutrient to its loaded state (a supply event).
@@ -234,6 +279,7 @@ class Simulation:
                 patch.energy = 0.0
             for o in eaters:
                 o.energy += share
+                o.intake += share
         return eaten_total
 
     def run(self, steps: int) -> Snapshot:
@@ -268,6 +314,13 @@ class Simulation:
                 (due, p.x.hex(), p.y.hex(), p.energy.hex(), p.capacity.hex(), p.regen.hex(),
                  None if p.reservoir is None else p.reservoir.hex(), total.hex())
                 for due, p, total in self._respawn_pending)))
+        if self._evolution_rng is not None:
+            # Only with the evolution reward on, so digests of other runs are unchanged.
+            parts.append(("EV", tuple(
+                (o.oid, o.intake.hex(), None if o.parent_intake_rate is None else o.parent_intake_rate.hex(),
+                 o.metabolism_factor.hex()) for o in self.organisms),
+                self.evolved_births, self.unevolved_births, self.failed_births,
+                repr(self._evolution_rng.getstate())))
         parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
         for name in RNG_STREAMS:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))

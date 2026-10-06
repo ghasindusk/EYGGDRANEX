@@ -31,6 +31,8 @@
 
 - Split respawn of eaten-up nutrients (experimental): with `nutrient_respawn_delay > 0`, a nutrient that was eaten up comes back that many ticks later, half of its starting energy at the same place and half far away (about the opposite side of the world, offset by a hash of position and energy; no random numbers). Respawned nutrients do the same when eaten up; a half below `nutrient_respawn_min_energy` (10) is not split. Cannot be combined with `nutrient_regrow_interval`. Off by default.
 
+- Evolution reward (experimental, `evolution_reward`, off by default; breaks invariants #1 and #5 by design, see `docs/architecture/INVARIANTS.md`): an organism whose lifetime intake per tick at reproduction exceeds its parent's at its birth has `1 + evolution_bonus_offspring` strong children (basal metabolism ×0.9, birth mutation width ×1.2), each paid from its energy. Otherwise its child is weak (×1.1, ×0.8) and fails to be born with probability `evolution_drop_probability` (0.25; the energy is lost), drawn from a separate `evolution` stream created only when enabled. Organisms gain `intake`, `parent_intake_rate` and `metabolism_factor`; `Genome.mutate` takes a `scale_factor`. Runs without it are unchanged.
+
 ### Fixed
 - Loading nutrients no longer fails when a file in the directory cannot be read (e.g. Google Drive `.gdoc` placeholders); such files are skipped and listed under `unreadable` in the manifest.
 

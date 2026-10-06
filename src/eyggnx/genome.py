@@ -69,14 +69,14 @@ class Genome:
     distance_aversion: float = 1.0
     wander_step: float = 0.625
 
-    def mutate(self, rng: random.Random) -> "Genome":
+    def mutate(self, rng: random.Random, scale_factor: float = 1.0) -> "Genome":
         """Log-normal mutation with reflecting bounds in log space.
 
         ``log v' = reflect(log v + N(0, s), log lo, log hi)``. The operator is unbiased in
         log space (no neutral drift away from the start value) and does not pile values up
-        at the bounds.
+        at the bounds. ``scale_factor`` widens or narrows ``s`` for this mutation only.
         """
-        s = self.mutation_scale
+        s = self.mutation_scale * scale_factor
         values = {}
         for gene in GENES:
             u = math.log(getattr(self, gene.name)) + rng.gauss(0.0, s)

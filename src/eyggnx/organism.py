@@ -32,6 +32,17 @@ class Organism:
     generation: int = 0
     parent_id: int | None = None
     age: int = 0
+    #: Energy eaten over the whole life (feeding only).
+    intake: float = 0.0
+    #: The parent's intake per tick when this organism was born (None for founders).
+    parent_intake_rate: float | None = None
+    #: Multiplier on basal metabolism (1.0 except under the experimental evolution reward).
+    metabolism_factor: float = 1.0
+
+    @property
+    def intake_rate(self) -> float:
+        """Energy eaten per tick of life so far."""
+        return self.intake / self.age if self.age > 0 else 0.0
 
     @property
     def alive(self) -> bool:
@@ -43,13 +54,14 @@ class Organism:
         self.age += 1
         self.x, self.y = world.wrap(self.x + intent.dx, self.y + intent.dy)
         travelled = math.hypot(intent.dx, intent.dy)
-        self.energy -= basal_metabolism(self.genome, cfg) + travelled * cfg.movement_cost * self.genome.speed
+        self.energy -= basal_metabolism(self.genome, cfg) * self.metabolism_factor + travelled * cfg.movement_cost * self.genome.speed
 
     def can_reproduce(self) -> bool:
         return self.energy >= self.genome.reproduction_threshold and self.alive
 
     def reproduce(self, child_id: int, world: World, placement: random.Random,
-                  mutation: random.Random) -> "Organism":
+                  mutation: random.Random, *, metabolism_factor: float = 1.0,
+                  mutation_factor: float = 1.0) -> "Organism":
         child_energy = self.energy * self.genome.offspring_fraction
         self.energy -= child_energy
         angle = placement.random() * math.tau
@@ -60,7 +72,9 @@ class Organism:
             x=x,
             y=y,
             energy=child_energy,
-            genome=self.genome.mutate(mutation) if world.config.mutate_offspring else self.genome,
+            genome=self.genome.mutate(mutation, mutation_factor) if world.config.mutate_offspring else self.genome,
             generation=self.generation + 1,
             parent_id=self.oid,
+            parent_intake_rate=self.intake_rate,
+            metabolism_factor=metabolism_factor,
         )
