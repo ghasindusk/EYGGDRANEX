@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 import hashlib
 import random
 from statistics import fmean
@@ -84,6 +84,9 @@ class Simulation:
         self.rngs = {name: derive_stream(seed, name) for name in RNG_STREAMS}
         self.world = World(width, height, self.rngs["world"], config.resource_patches, config=config)
         nutrients, self.nutrient_manifest = load_nutrients(config)
+        # Pristine copies for regrowth (nutrient_regrow_interval) and the live patches.
+        self._nutrient_templates = [replace(p) for p in nutrients]
+        self._nutrient_patches = nutrients
         for patch in nutrients:
             self.world.add_resource(patch)
         self.controller: Controller = DEFAULT_CONTROLLER
@@ -108,6 +111,9 @@ class Simulation:
         self.tick_index += 1
         world = self.world
         world.tick()
+        interval = self.config.nutrient_regrow_interval
+        if interval > 0 and self.tick_index % interval == 0:
+            self._regrow_nutrients()
         observer = self.observer
         self.organisms.sort(key=lambda o: o.oid)
         organisms = self.organisms
@@ -148,6 +154,20 @@ class Simulation:
         if observer is not None:
             observer.on_tick(self)
         return self.snapshot()
+
+    def _regrow_nutrients(self) -> None:
+        """Restore every external data nutrient to its loaded state (a supply event).
+
+        Patches still in the world are refilled in place; eaten-up ones that were removed
+        are placed again at their original position, appended in manifest order.
+        """
+        present = {id(r) for r in self.world.resources}
+        for i, template in enumerate(self._nutrient_templates):
+            patch = self._nutrient_patches[i]
+            patch.energy, patch.capacity = template.energy, template.capacity
+            patch.regen, patch.reservoir = template.regen, template.reservoir
+            if id(patch) not in present:
+                self.world.add_resource(patch)
 
     def _resolve_feeding(self, organisms: list[Organism]) -> float:
         """Each organism eats from its nearest patch in contact range; contested patches

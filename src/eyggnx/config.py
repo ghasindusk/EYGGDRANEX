@@ -89,6 +89,9 @@ class SimulationConfig:
     # Hypothesis: chosen near the regen/capacity of ordinary patches (experiments/nutrients).
     nutrient_release_rate: float = 0.4
     nutrient_release_capacity: float = 30.0
+    # 0 = off; otherwise every this many ticks all external data nutrients are restored to
+    # their loaded energy (eaten-up ones reappear at the same place): food that comes back.
+    nutrient_regrow_interval: int = 0
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
     nutrient_max_files: int = 1000
@@ -121,6 +124,7 @@ class SimulationConfig:
         non_negative_int("nutrient_max_files", self.nutrient_max_files)
         non_negative_int("nutrient_max_bytes", self.nutrient_max_bytes)
         non_negative_int("nutrient_chunk_bytes", self.nutrient_chunk_bytes)
+        non_negative_int("nutrient_regrow_interval", self.nutrient_regrow_interval)
         split = self.nutrient_split_energy
         if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
             raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")
