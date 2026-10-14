@@ -95,6 +95,8 @@ class SimulationConfig:
     # Optional experimental coupling: consumed data biases offspring mutation in log
     # space. Zero preserves the existing simulation trajectory.
     nutrient_mutation_strength: float = 0.0
+    # Fraction of the bounded learned signal applied to the living parent's genome.
+    nutrient_parent_learning_fraction: float = 0.005
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
     nutrient_max_files: int = 1000
@@ -132,6 +134,10 @@ class SimulationConfig:
         if (isinstance(strength, bool) or not isinstance(strength, (int, float))
                 or not math.isfinite(strength) or not 0.0 <= strength <= 1.0):
             raise ValueError(f"nutrient_mutation_strength must be finite and in [0, 1], got {strength}")
+        fraction = self.nutrient_parent_learning_fraction
+        if (isinstance(fraction, bool) or not isinstance(fraction, (int, float))
+                or not math.isfinite(fraction) or not 0.0 <= fraction <= 1.0):
+            raise ValueError(f"nutrient_parent_learning_fraction must be finite and in [0, 1], got {fraction}")
         split = self.nutrient_split_energy
         if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
             raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")

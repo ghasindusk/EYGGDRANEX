@@ -69,6 +69,15 @@ class Genome:
     distance_aversion: float = 1.0
     wander_step: float = 0.625
 
+    def shift(self, bias: tuple[float, ...]) -> "Genome":
+        """Apply a deterministic, bounded log-space shift without random mutation."""
+        values = {}
+        for gene, delta in zip(GENES, bias):
+            u = math.log(getattr(self, gene.name)) + delta
+            values[gene.name] = min(gene.hi, max(gene.lo, math.exp(
+                reflect(u, math.log(gene.lo), math.log(gene.hi)))))
+        return replace(self, **values)
+
     def mutate(self, rng: random.Random, bias: tuple[float, ...] | None = None) -> "Genome":
         """Log-normal mutation with reflecting bounds in log space.
 

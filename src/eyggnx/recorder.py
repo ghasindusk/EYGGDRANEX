@@ -74,7 +74,7 @@ def population_metrics(sim: Simulation) -> dict[str, Any]:
     if sim.config.nutrient_mutation_strength > 0:
         metrics["data_eaten_total"] = sim.data_eaten_total
         metrics["data_influenced_births"] = sim.data_influenced_births
-        metrics["mean_diet_energy_since_birth"] = (
+        metrics["mean_inherited_data_energy"] = (
             fmean(o.diet_energy for o in organisms) if organisms else None)
     return metrics
 

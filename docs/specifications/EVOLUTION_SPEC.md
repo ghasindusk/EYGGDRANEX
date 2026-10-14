@@ -8,6 +8,8 @@
 
 子は親Genomeの変異コピーを受け継ぐ。v0.1は無性生殖のみ。
 
+実験設定 `nutrient_mutation_strength > 0` では、子は親の生涯データ蓄積信号も受け継ぐ。新しいデータ摂取は親のゲノムにも既定で学習信号の0.5%を反映する。データの内容はバイト分布から作った信号であり、文書の意味を理解するわけではない。
+
 ## Open-ended expansion path
 
 - sexual crossover
@@ -17,7 +19,6 @@
 - horizontal gene transfer
 - symbiosis
 - host/parasite coevolution
-- learned-bias inheritance
 - cultural inheritance
 
 ## Principle

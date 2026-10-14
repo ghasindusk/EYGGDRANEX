@@ -206,7 +206,7 @@ class Simulation:
             for o in eaters:
                 o.energy += share
                 if patch.information_signature is not None and share > 0.0:
-                    o.absorb_data(share, patch.information_signature)
+                    o.absorb_data(share, patch.information_signature, self.config)
         return eaten_total
 
     def run(self, steps: int) -> Snapshot:
@@ -233,7 +233,9 @@ class Simulation:
                     o.x.hex(), o.y.hex(), o.energy.hex(), genes)
             if self.config.nutrient_mutation_strength > 0:
                 part += (o.diet_energy.hex(),
-                         None if o.diet_signal is None else tuple(v.hex() for v in o.diet_signal))
+                         None if o.diet_signal is None else tuple(v.hex() for v in o.diet_signal),
+                         None if o.learned_bias_applied is None else tuple(
+                             v.hex() for v in o.learned_bias_applied))
             parts.append(part)
         for r in self.world.resources:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())

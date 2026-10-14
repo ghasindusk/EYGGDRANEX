@@ -35,12 +35,12 @@
 | 7 | ✅ 満たす | 機構ごとの乱数系統（`world`, `founders`, `movement`, `placement`, `mutation`）。外部データの餌は乱数を使わず内容のハッシュで配置する。`StreamIsolationTests`、`test_nutrients_do_not_shift_other_mechanisms` |
 | 8 | ✅ 満たす | `test_recording_does_not_change_the_trajectory` |
 | 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction`、`tests/test_stability.py` |
-| 10 | ✅ 満たす | ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけである。制御器のパラメータは遺伝子だが、生涯の間に書き換わらない。学習・文化の層はまだない |
+| 10 | 実験設定で例外 | 通常設定ではゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけ。データ学習を有効にすると、食べたデータの信号の変化分の0.5%が親のゲノムにも反映される。遺伝子範囲は維持する |
 
 | 11 | ✅ 満たす | LLM の層はない |
 | 12 | ✅ 満たす | `v0.1.0-alpha` / `v0.1.1-alpha` タグは不変。contract 1 の軌跡はタグから再現できる |
 
-`nutrient_mutation_strength > 0` の実験設定でも、食べたデータのバイト分布は親の一時的な摂取記録として蓄積され、繁殖時の**子の変異**にだけ作用する。親のゲノムは生涯中に変わらず、餌の分類で生物の規則は分岐しない。既定 0 では従来の軌跡と golden digest を維持する。
+`nutrient_mutation_strength > 0` の実験設定では、食べたデータのバイト分布を生涯蓄積し、子へ受け継ぐ。親のゲノムにも新しい学習の差分を小さく反映する。餌の分類で生物の規則は分岐しない。既定 0 では従来の軌跡と golden digest を維持する。
 
 ## How to apply
 

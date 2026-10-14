@@ -39,7 +39,8 @@ interpreted, and nothing is fetched from the network.
   energy) and its digest are stored with the simulation and in the run record.
 * Optional data-guided mutation: when ``nutrient_mutation_strength > 0``, an eight-value
   byte-frequency signature rides with each patch. Actual intake contributes to an
-  organism's transient diet signal, which biases only its offspring's mutation.
+  organism's lifetime data memory, which is inherited by offspring and also
+  applies a small deterministic shift to the parent's genome.
 """
 
 from __future__ import annotations

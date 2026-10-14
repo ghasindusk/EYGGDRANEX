@@ -4,9 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-"""Data intake can influence offspring mutation without editing the parent."""
+"""Lifetime data memory biases offspring and gently updates the parent."""
 
 from dataclasses import replace
+import math
 import os
 import random
 from pathlib import Path
@@ -58,19 +59,19 @@ class DataMutationTests(unittest.TestCase):
             guided_parent_genome = guided.organisms[0].genome
             guided.tick()
             plain.tick()
-            self.assertEqual(guided.organisms[0].genome, guided_parent_genome)
+            self.assertNotEqual(guided.organisms[0].genome, guided_parent_genome)
             self.assertEqual(guided.births_total, 1)
             self.assertEqual(guided.data_influenced_births, 1)
             self.assertGreater(guided.data_eaten_total, 0.0)
             self.assertNotEqual(guided.organisms[1].genome, plain.organisms[1].genome)
-            self.assertEqual((guided.organisms[0].diet_signal, guided.organisms[0].diet_energy),
-                             (None, 0.0))
-            self.assertEqual(guided.organisms[1].diet_signal, None)
+            self.assertGreater(guided.organisms[0].diet_energy, 0.0)
+            self.assertEqual(guided.organisms[1].diet_signal, guided.organisms[0].diet_signal)
+            self.assertEqual(guided.organisms[1].diet_energy, guided.organisms[0].diet_energy)
             record = build_run_record(ExperimentSpec(config=guided.config), guided, guided.snapshot())
             self.assertEqual(record["result"]["data_influenced_births"], 1)
             self.assertIn("data_eaten_total", population_metrics(guided))
 
-    def test_diet_is_energy_weighted_and_resets_after_reproduction(self):
+    def test_diet_is_energy_weighted_and_inherited_after_reproduction(self):
         from eyggnx.organism import Organism
         from eyggnx.world import World
         parent = Organism(0, 5.0, 5.0, 60.0, Genome())
@@ -79,8 +80,36 @@ class DataMutationTests(unittest.TestCase):
         self.assertEqual(parent.diet_signal[0] / parent.diet_energy, -0.5)
         world = World(100.0, 100.0, random.Random(1), patches=0,
                       config=SimulationConfig(nutrient_mutation_strength=0.4))
-        parent.reproduce(1, world, random.Random(2), random.Random(3))
-        self.assertEqual((parent.diet_signal, parent.diet_energy), (None, 0.0))
+        child = parent.reproduce(1, world, random.Random(2), random.Random(3))
+        self.assertEqual((parent.diet_signal, parent.diet_energy),
+                         (child.diet_signal, child.diet_energy))
+
+    def test_parent_applies_only_incremental_half_percent_learning(self):
+        from eyggnx.organism import Organism
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0)
+        parent = Organism(0, 0.0, 0.0, 100.0, Genome())
+        signature = (1.0,) + (0.0,) * 7
+        parent.absorb_data(28.0, signature, cfg)
+        self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
+        first = parent.genome
+        parent.absorb_data(28.0, signature, cfg)
+        self.assertEqual(parent.genome, first)
+        self.assertEqual(parent.diet_energy, 56.0)
+
+    def test_inherited_memory_is_not_reapplied_to_child(self):
+        from eyggnx.organism import Organism
+        from eyggnx.world import World
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0)
+        parent = Organism(0, 0.0, 0.0, 100.0, Genome())
+        signature = (1.0,) + (0.0,) * 7
+        parent.absorb_data(28.0, signature, cfg)
+        world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
+        child = parent.reproduce(1, world, random.Random(2), random.Random(3))
+        child.genome = Genome()  # same threshold: isolate the newly consumed data
+        before = child.genome
+        child.absorb_data(1.0, signature, cfg)
+        self.assertAlmostEqual(child.genome.speed, before.speed)
+        self.assertEqual(child.diet_energy, 29.0)
 
     def test_disabled_feature_does_not_load_signatures_or_change_digests(self):
         with TemporaryDirectory() as directory:
@@ -124,6 +153,9 @@ class DataMutationTests(unittest.TestCase):
         for strength in (-0.1, 1.1, float("nan"), True):
             with self.subTest(strength=strength), self.assertRaises(ValueError):
                 SimulationConfig(nutrient_mutation_strength=strength)
+        for fraction in (-0.1, 1.1, float("nan"), True):
+            with self.subTest(fraction=fraction), self.assertRaises(ValueError):
+                SimulationConfig(nutrient_parent_learning_fraction=fraction)
 
     def test_fixed_genome_control_stays_fixed_after_data_intake(self):
         with TemporaryDirectory() as directory:
