@@ -14,7 +14,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from eyggnx.config import ExperimentSpec, SimulationConfig
+from eyggnx.config import (MAX_NUTRIENT_PARENT_LEARNING_RATE, ExperimentSpec,
+                           SimulationConfig)
 from eyggnx.controller import Intent
 from eyggnx.genome import Genome
 from eyggnx.nutrients import information_signature, load_nutrients
@@ -87,7 +88,7 @@ class DataMutationTests(unittest.TestCase):
     def test_parent_applies_only_incremental_half_percent_learning(self):
         from eyggnx.organism import Organism
         cfg = SimulationConfig(nutrient_mutation_strength=1.0)
-        parent = Organism(0, 0.0, 0.0, 100.0, Genome())
+        parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
         signature = (1.0,) + (0.0,) * 7
         parent.absorb_data(28.0, signature, cfg)
         self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
@@ -104,7 +105,7 @@ class DataMutationTests(unittest.TestCase):
         for guidance in (False, True):
             cfg = SimulationConfig(nutrient_mutation_strength=1.0,
                                    nutrient_offspring_guidance=guidance)
-            parent = Organism(0, 0.0, 0.0, 100.0, Genome())
+            parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
             parent.absorb_data(28.0, signature, cfg)
             self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
             world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
@@ -118,7 +119,7 @@ class DataMutationTests(unittest.TestCase):
         from eyggnx.organism import Organism
         from eyggnx.world import World
         cfg = SimulationConfig(nutrient_mutation_strength=1.0)
-        parent = Organism(0, 0.0, 0.0, 100.0, Genome())
+        parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
         signature = (1.0,) + (0.0,) * 7
         parent.absorb_data(28.0, signature, cfg)
         world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
@@ -171,11 +172,24 @@ class DataMutationTests(unittest.TestCase):
         for strength in (-0.1, 1.1, float("nan"), True):
             with self.subTest(strength=strength), self.assertRaises(ValueError):
                 SimulationConfig(nutrient_mutation_strength=strength)
-        for fraction in (-0.1, 1.1, float("nan"), True):
+        for fraction in (-0.1, 0.021, float("nan"), True):
             with self.subTest(fraction=fraction), self.assertRaises(ValueError):
                 SimulationConfig(nutrient_parent_learning_fraction=fraction)
         with self.assertRaises(TypeError):
             SimulationConfig(nutrient_offspring_guidance=1)
+
+    def test_learning_rate_varies_by_individual_and_never_exceeds_two_percent(self):
+        cfg = SimulationConfig(nutrient_mutation_strength=0.2)
+        sim = Simulation(seed=19, population=30, config=cfg)
+        rates = [o.data_learning_rate for o in sim.organisms]
+        self.assertGreater(len(set(rates)), 1)
+        self.assertTrue(all(0.0 < rate <= MAX_NUTRIENT_PARENT_LEARNING_RATE for rate in rates))
+        parent = sim.organisms[0]
+        parent.data_learning_rate = MAX_NUTRIENT_PARENT_LEARNING_RATE
+        child = parent.reproduce(31, sim.world, random.Random(1), random.Random(2),
+                                 sim.rngs["learning"])
+        self.assertLessEqual(child.data_learning_rate, MAX_NUTRIENT_PARENT_LEARNING_RATE)
+        self.assertNotEqual(child.data_learning_rate, parent.data_learning_rate)
 
     def test_fixed_genome_control_stays_fixed_after_data_intake(self):
         with TemporaryDirectory() as directory:

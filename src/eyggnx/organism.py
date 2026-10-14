@@ -10,9 +10,9 @@ from dataclasses import dataclass
 import math
 import random
 
-from .config import SimulationConfig
+from .config import MAX_NUTRIENT_PARENT_LEARNING_RATE, SimulationConfig
 from .controller import Intent
-from .genome import Genome
+from .genome import Genome, reflect
 from .world import World
 
 
@@ -35,6 +35,18 @@ class Organism:
     diet_signal: tuple[float, ...] | None = None
     diet_energy: float = 0.0
     learned_bias_applied: tuple[float, ...] | None = None
+    data_learning_rate: float = 0.0
+
+    @staticmethod
+    def vary_learning_rate(rate: float, scale: float, rng: random.Random) -> float:
+        """Inherit a rate with independent log-space variation, bounded at 2%."""
+        if rate <= 0.0:
+            return 0.0
+        low = 1e-6
+        upper = MAX_NUTRIENT_PARENT_LEARNING_RATE
+        value = math.exp(reflect(math.log(rate) + rng.gauss(0.0, scale),
+                                 math.log(low), math.log(upper)))
+        return min(upper, max(low, value))
 
     def learned_bias(self, config: SimulationConfig) -> tuple[float, ...] | None:
         if self.diet_energy <= 0.0 or self.diet_signal is None:
@@ -57,7 +69,7 @@ class Organism:
             bias = self.learned_bias(config)
             assert bias is not None
             previous = self.learned_bias_applied or (0.0,) * len(bias)
-            fraction = config.nutrient_parent_learning_fraction
+            fraction = self.data_learning_rate
             delta = tuple(fraction * (new - old) for new, old in zip(bias, previous))
             if any(delta):
                 self.genome = self.genome.shift(delta)
@@ -79,7 +91,7 @@ class Organism:
         return self.energy >= self.genome.reproduction_threshold and self.alive
 
     def reproduce(self, child_id: int, world: World, placement: random.Random,
-                  mutation: random.Random) -> "Organism":
+                  mutation: random.Random, learning: random.Random | None = None) -> "Organism":
         child_energy = self.energy * self.genome.offspring_fraction
         self.energy -= child_energy
         angle = placement.random() * math.tau
@@ -98,5 +110,9 @@ class Organism:
             diet_signal=self.diet_signal if world.config.nutrient_mutation_strength > 0 else None,
             diet_energy=self.diet_energy if world.config.nutrient_mutation_strength > 0 else 0.0,
             learned_bias_applied=bias,
+            data_learning_rate=(self.vary_learning_rate(self.data_learning_rate,
+                                self.genome.mutation_scale, learning)
+                                if learning is not None and world.config.mutate_offspring
+                                else self.data_learning_rate),
         )
         return child

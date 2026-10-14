@@ -35,7 +35,7 @@
 | 7 | ✅ 満たす | 機構ごとの乱数系統（`world`, `founders`, `movement`, `placement`, `mutation`）。外部データの餌は乱数を使わず内容のハッシュで配置する。`StreamIsolationTests`、`test_nutrients_do_not_shift_other_mechanisms` |
 | 8 | ✅ 満たす | `test_recording_does_not_change_the_trajectory` |
 | 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction`、`tests/test_stability.py` |
-| 10 | 実験設定で例外 | 通常設定ではゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけ。データ学習を有効にすると、食べたデータの信号の変化分の0.5%が親のゲノムにも反映される。遺伝子範囲は維持する |
+| 10 | 実験設定で例外 | 通常設定ではゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけ。データ学習を有効にすると、食べたデータの信号の変化分が個体固有の学習率（上限2%）で親のゲノムにも反映される。遺伝子範囲は維持する |
 
 | 11 | ✅ 満たす | LLM の層はない |
 | 12 | ✅ 満たす | `v0.1.0-alpha` / `v0.1.1-alpha` タグは不変。contract 1 の軌跡はタグから再現できる |

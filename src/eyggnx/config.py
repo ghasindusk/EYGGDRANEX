@@ -43,6 +43,7 @@ NUTRIENT_ATTRIBUTES: dict[str, dict[str, float]] = {
 #: Version of the simulation semantics. Bump it whenever the same seed and
 #: configuration would produce a different trajectory.
 SIMULATION_CONTRACT = 2
+MAX_NUTRIENT_PARENT_LEARNING_RATE = 0.02
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,7 +99,7 @@ class SimulationConfig:
     # With data learning enabled, control whether the learned signal biases
     # offspring mutation. Memory inheritance and parent learning still operate.
     nutrient_offspring_guidance: bool = True
-    # Fraction of the bounded learned signal applied to the living parent's genome.
+    # Founder center for the heritable per-organism learning rate; capped at 2%.
     nutrient_parent_learning_fraction: float = 0.005
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
@@ -141,8 +142,9 @@ class SimulationConfig:
             raise TypeError("nutrient_offspring_guidance must be a bool")
         fraction = self.nutrient_parent_learning_fraction
         if (isinstance(fraction, bool) or not isinstance(fraction, (int, float))
-                or not math.isfinite(fraction) or not 0.0 <= fraction <= 1.0):
-            raise ValueError(f"nutrient_parent_learning_fraction must be finite and in [0, 1], got {fraction}")
+                or not math.isfinite(fraction) or not 0.0 <= fraction <= MAX_NUTRIENT_PARENT_LEARNING_RATE):
+            raise ValueError("nutrient_parent_learning_fraction must be finite and in "
+                             f"[0, {MAX_NUTRIENT_PARENT_LEARNING_RATE}], got {fraction}")
         split = self.nutrient_split_energy
         if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
             raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")

@@ -82,6 +82,8 @@ class Simulation:
         self.seed = seed
         self.config = config
         self.rngs = {name: derive_stream(seed, name) for name in RNG_STREAMS}
+        if config.nutrient_mutation_strength > 0 and config.nutrient_parent_learning_fraction > 0:
+            self.rngs["learning"] = derive_stream(seed, "learning")
         self.world = World(width, height, self.rngs["world"], config.resource_patches, config=config)
         nutrients, self.nutrient_manifest = load_nutrients(config)
         # Pristine copies for regrowth (nutrient_regrow_interval) and the live patches.
@@ -104,7 +106,11 @@ class Simulation:
         for i in range(population):
             x, y = founders.random() * width, founders.random() * height
             energy = founders.uniform(*config.founder_energy_range)
-            self.organisms.append(Organism(oid=i, x=x, y=y, energy=energy, genome=base.mutate(founders)))
+            rate = (Organism.vary_learning_rate(config.nutrient_parent_learning_fraction,
+                                                0.1, self.rngs["learning"])
+                    if "learning" in self.rngs else 0.0)
+            self.organisms.append(Organism(oid=i, x=x, y=y, energy=energy,
+                                           genome=base.mutate(founders), data_learning_rate=rate))
         #: Optional observer (see ``eyggnx.recorder``). Observers must not mutate state or
         #: draw from the simulation's random streams; the trajectory is identical with or without one.
         self.observer: SimulationObserver | None = None
@@ -135,7 +141,8 @@ class Simulation:
                               and organism.diet_energy > 0.0
                               and self.config.nutrient_mutation_strength > 0.0
                               and organism.diet_signal is not None and any(organism.diet_signal))
-                child = organism.reproduce(self.next_id, world, placement, mutation)
+                child = organism.reproduce(self.next_id, world, placement, mutation,
+                                           self.rngs.get("learning"))
                 if influenced:
                     self.data_influenced_births += 1
                 births.append(child)
@@ -236,7 +243,7 @@ class Simulation:
                 part += (o.diet_energy.hex(),
                          None if o.diet_signal is None else tuple(v.hex() for v in o.diet_signal),
                          None if o.learned_bias_applied is None else tuple(
-                             v.hex() for v in o.learned_bias_applied))
+                             v.hex() for v in o.learned_bias_applied), o.data_learning_rate.hex())
             parts.append(part)
         for r in self.world.resources:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
@@ -251,6 +258,8 @@ class Simulation:
             parts.append(("DATA", self.data_eaten_total.hex(), self.data_influenced_births))
         for name in RNG_STREAMS:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))
+        if "learning" in self.rngs:
+            parts.append(("RNG", "learning", repr(self.rngs["learning"].getstate())))
         return hashlib.sha256(repr(parts).encode()).hexdigest()
 
     def snapshot(self) -> Snapshot:

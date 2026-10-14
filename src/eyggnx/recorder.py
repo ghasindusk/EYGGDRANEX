@@ -76,12 +76,19 @@ def population_metrics(sim: Simulation) -> dict[str, Any]:
         metrics["data_influenced_births"] = sim.data_influenced_births
         metrics["mean_inherited_data_energy"] = (
             fmean(o.diet_energy for o in organisms) if organisms else None)
+        metrics["mean_data_learning_rate"] = (
+            fmean(o.data_learning_rate for o in organisms) if organisms else None)
+        metrics["max_data_learning_rate"] = (
+            max((o.data_learning_rate for o in organisms), default=None))
     return metrics
 
 
 def _organism_record(o: Organism) -> dict[str, Any]:
-    return {"oid": o.oid, "parent_id": o.parent_id, "generation": o.generation,
-            "x": o.x, "y": o.y, "energy": o.energy, "genome": asdict(o.genome)}
+    record = {"oid": o.oid, "parent_id": o.parent_id, "generation": o.generation,
+              "x": o.x, "y": o.y, "energy": o.energy, "genome": asdict(o.genome)}
+    if o.data_learning_rate > 0:
+        record["data_learning_rate"] = o.data_learning_rate
+    return record
 
 
 class Recorder:
