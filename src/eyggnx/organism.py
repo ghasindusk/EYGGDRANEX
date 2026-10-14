@@ -91,7 +91,8 @@ class Organism:
             x=x,
             y=y,
             energy=child_energy,
-            genome=self.genome.mutate(mutation, bias) if world.config.mutate_offspring else self.genome,
+            genome=(self.genome.mutate(mutation, bias if world.config.nutrient_offspring_guidance else None)
+                    if world.config.mutate_offspring else self.genome),
             generation=self.generation + 1,
             parent_id=self.oid,
             diet_signal=self.diet_signal if world.config.nutrient_mutation_strength > 0 else None,

@@ -131,7 +131,8 @@ class Simulation:
         placement, mutation = self.rngs["placement"], self.rngs["mutation"]
         for organism in organisms:
             if organism.can_reproduce():
-                influenced = (self.config.mutate_offspring and organism.diet_energy > 0.0
+                influenced = (self.config.mutate_offspring and self.config.nutrient_offspring_guidance
+                              and organism.diet_energy > 0.0
                               and self.config.nutrient_mutation_strength > 0.0
                               and organism.diet_signal is not None and any(organism.diet_signal))
                 child = organism.reproduce(self.next_id, world, placement, mutation)

@@ -96,6 +96,24 @@ class DataMutationTests(unittest.TestCase):
         self.assertEqual(parent.genome, first)
         self.assertEqual(parent.diet_energy, 56.0)
 
+    def test_guidance_toggle_keeps_parent_learning_and_inheritance(self):
+        from eyggnx.organism import Organism
+        from eyggnx.world import World
+        signature = (1.0,) + (0.0,) * 7
+        children = []
+        for guidance in (False, True):
+            cfg = SimulationConfig(nutrient_mutation_strength=1.0,
+                                   nutrient_offspring_guidance=guidance)
+            parent = Organism(0, 0.0, 0.0, 100.0, Genome())
+            parent.absorb_data(28.0, signature, cfg)
+            self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
+            world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
+            child = parent.reproduce(1, world, random.Random(2), random.Random(3))
+            self.assertEqual(child.diet_signal, parent.diet_signal)
+            self.assertEqual(child.diet_energy, parent.diet_energy)
+            children.append(child)
+        self.assertNotEqual(children[0].genome, children[1].genome)
+
     def test_inherited_memory_is_not_reapplied_to_child(self):
         from eyggnx.organism import Organism
         from eyggnx.world import World
@@ -156,6 +174,8 @@ class DataMutationTests(unittest.TestCase):
         for fraction in (-0.1, 1.1, float("nan"), True):
             with self.subTest(fraction=fraction), self.assertRaises(ValueError):
                 SimulationConfig(nutrient_parent_learning_fraction=fraction)
+        with self.assertRaises(TypeError):
+            SimulationConfig(nutrient_offspring_guidance=1)
 
     def test_fixed_genome_control_stays_fixed_after_data_intake(self):
         with TemporaryDirectory() as directory:
