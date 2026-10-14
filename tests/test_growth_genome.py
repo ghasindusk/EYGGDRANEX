@@ -21,13 +21,13 @@ SIGNATURE = (1.0,) + (0.0,) * 7
 
 def grown_parent(cfg: SimulationConfig, rate: float = 0.005) -> Organism:
     parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=rate)
-    parent.absorb_data(28.0, SIGNATURE, cfg)
+    parent.absorb_data(1.0, SIGNATURE, cfg)  # growth = 0.005 x 1 x 1.0 on the first gene
     return parent
 
 
 class GrowthGenomeTests(unittest.TestCase):
     def test_base_genome_is_fixed_and_growth_is_expressed(self):
-        cfg = SimulationConfig(nutrient_mutation_strength=1.0)
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0)
         parent = grown_parent(cfg)
         self.assertEqual(parent.base, Genome())
         self.assertEqual(parent.growth[0], 0.005)
@@ -35,11 +35,20 @@ class GrowthGenomeTests(unittest.TestCase):
         self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
 
     def test_growth_is_bounded_per_gene(self):
-        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_max_log=0.001)
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0, growth_max_log=0.001)
         parent = grown_parent(cfg)
         self.assertEqual(parent.growth[0], 0.001)
         self.assertAlmostEqual(parent.genome.speed, math.exp(0.001))
         self.assertEqual(parent.base, Genome())
+
+    def test_data_sets_the_direction_and_the_amount_eaten_sets_the_size(self):
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0)
+        weak = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
+        weak.absorb_data(1.0, (0.01, -0.005) + (0.0,) * 6, cfg)  # low-contrast data
+        self.assertAlmostEqual(weak.growth[0], 0.005)
+        self.assertAlmostEqual(weak.growth[1], -0.0025)
+        strong = grown_parent(cfg)  # signature (1, 0, ...): same amount, same size
+        self.assertAlmostEqual(strong.growth[0], weak.growth[0])
 
     def test_without_growth_the_organism_keeps_a_single_genome(self):
         parent = Organism(0, 0.0, 0.0, 100.0, Genome())
@@ -50,7 +59,7 @@ class GrowthGenomeTests(unittest.TestCase):
     def test_inheritance_probability_selects_the_source_genome(self):
         for p, expected_source in ((1.0, "expressed"), (0.0, "base")):
             with self.subTest(p=p):
-                cfg = SimulationConfig(nutrient_mutation_strength=1.0, nutrient_offspring_guidance=False,
+                cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0, nutrient_offspring_guidance=False,
                                        growth_inheritance_probability=p)
                 parent = grown_parent(cfg)
                 world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
@@ -62,7 +71,7 @@ class GrowthGenomeTests(unittest.TestCase):
                 self.assertEqual(parent.base, Genome())  # reproduction does not touch the parent
 
     def test_partial_probability_draws_from_the_learning_stream(self):
-        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_inheritance_probability=0.5)
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0, growth_inheritance_probability=0.5)
         outcomes = set()
         for seed in range(20):
             parent = grown_parent(cfg)
@@ -72,7 +81,7 @@ class GrowthGenomeTests(unittest.TestCase):
         self.assertEqual(outcomes, {True, False})
 
     def test_fixed_genome_control_never_grows_or_inherits_growth(self):
-        cfg = SimulationConfig(nutrient_mutation_strength=1.0, mutate_offspring=False,
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0, mutate_offspring=False,
                                growth_inheritance_probability=1.0)
         parent = grown_parent(cfg)
         self.assertIsNone(parent.growth)
@@ -90,11 +99,13 @@ class GrowthGenomeTests(unittest.TestCase):
                 SimulationConfig(growth_inheritance_probability=value)
 
     def test_simulation_counts_growth_inherited_births_reproducibly(self):
-        import os
+        import hashlib
         from pathlib import Path
         from tempfile import TemporaryDirectory
         with TemporaryDirectory() as directory:
-            Path(directory, "food").write_bytes(os.urandom(4000).hex().encode())
+            for i in range(20):  # fixed, hard-to-compress content: deterministic and nutritious
+                text = "".join(hashlib.sha256(f"{i}-{k}".encode()).hexdigest() for k in range(100))
+                Path(directory, f"food{i:02d}").write_bytes(text.encode())
             cfg = SimulationConfig(nutrient_dir=directory, nutrient_mutation_strength=0.5,
                                    nutrient_parent_learning_fraction=0.02)
             a = Simulation(seed=5, population=30, config=cfg)
@@ -102,6 +113,7 @@ class GrowthGenomeTests(unittest.TestCase):
             a.run(1500)
             b.run(1500)
             self.assertEqual(a.state_digest(), b.state_digest())
+            self.assertGreater(a.data_eaten_total, 100.0)
             self.assertGreater(a.growth_inherited_births, 0)
             self.assertLess(a.growth_inherited_births, a.births_total)
             for o in a.organisms:

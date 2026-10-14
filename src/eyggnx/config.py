@@ -107,6 +107,9 @@ class SimulationConfig:
     # base x exp(growth). With this probability a child descends from the expressed genome
     # (base x growth); otherwise from the base genome alone. Hypothesis values.
     growth_max_log: float = 0.1
+    # Growth per unit of data energy eaten = data_learning_rate x growth_gain on the bite's
+    # strongest signature component (the others in proportion).
+    growth_gain: float = 2.0
     growth_inheritance_probability: float = 0.5
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
@@ -155,6 +158,9 @@ class SimulationConfig:
         cap = self.growth_max_log
         if isinstance(cap, bool) or not isinstance(cap, (int, float)) or not math.isfinite(cap) or cap < 0:
             raise ValueError(f"growth_max_log must be finite and >= 0, got {cap}")
+        gain = self.growth_gain
+        if isinstance(gain, bool) or not isinstance(gain, (int, float)) or not math.isfinite(gain) or gain < 0:
+            raise ValueError(f"growth_gain must be finite and >= 0, got {gain}")
         p = self.growth_inheritance_probability
         if isinstance(p, bool) or not isinstance(p, (int, float)) or not math.isfinite(p) or not 0.0 <= p <= 1.0:
             raise ValueError(f"growth_inheritance_probability must be in [0, 1], got {p}")

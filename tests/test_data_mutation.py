@@ -85,17 +85,19 @@ class DataMutationTests(unittest.TestCase):
         self.assertEqual((parent.diet_signal, parent.diet_energy),
                          (child.diet_signal, child.diet_energy))
 
-    def test_parent_applies_only_incremental_half_percent_learning(self):
+    def test_parent_growth_accumulates_with_data_and_is_capped(self):
         from eyggnx.organism import Organism
-        cfg = SimulationConfig(nutrient_mutation_strength=1.0)
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0)
         parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
         signature = (1.0,) + (0.0,) * 7
-        parent.absorb_data(28.0, signature, cfg)
-        self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
-        first = parent.genome
-        parent.absorb_data(28.0, signature, cfg)
-        self.assertEqual(parent.genome, first)
-        self.assertEqual(parent.diet_energy, 56.0)
+        parent.absorb_data(4.0, signature, cfg)
+        self.assertAlmostEqual(parent.genome.speed, math.exp(0.02))
+        parent.absorb_data(4.0, signature, cfg)
+        self.assertAlmostEqual(parent.genome.speed, math.exp(0.04))
+        parent.absorb_data(100.0, signature, cfg)  # 0.04 + 0.5 is capped at growth_max_log
+        self.assertAlmostEqual(parent.genome.speed, math.exp(cfg.growth_max_log))
+        self.assertEqual(parent.base, Genome())
+        self.assertEqual(parent.diet_energy, 108.0)
 
     def test_guidance_toggle_keeps_parent_learning_and_inheritance(self):
         from eyggnx.organism import Organism
@@ -103,10 +105,10 @@ class DataMutationTests(unittest.TestCase):
         signature = (1.0,) + (0.0,) * 7
         children = []
         for guidance in (False, True):
-            cfg = SimulationConfig(nutrient_mutation_strength=1.0,
+            cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0,
                                    nutrient_offspring_guidance=guidance)
             parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
-            parent.absorb_data(28.0, signature, cfg)
+            parent.absorb_data(1.0, signature, cfg)
             self.assertAlmostEqual(parent.genome.speed, math.exp(0.005))
             world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
             child = parent.reproduce(1, world, random.Random(2), random.Random(3))
@@ -118,16 +120,17 @@ class DataMutationTests(unittest.TestCase):
     def test_inherited_memory_is_not_reapplied_to_child(self):
         from eyggnx.organism import Organism
         from eyggnx.world import World
-        cfg = SimulationConfig(nutrient_mutation_strength=1.0)
+        cfg = SimulationConfig(nutrient_mutation_strength=1.0, growth_gain=1.0)
         parent = Organism(0, 0.0, 0.0, 100.0, Genome(), data_learning_rate=0.005)
         signature = (1.0,) + (0.0,) * 7
         parent.absorb_data(28.0, signature, cfg)
         world = World(100.0, 100.0, random.Random(1), patches=0, config=cfg)
         child = parent.reproduce(1, world, random.Random(2), random.Random(3))
-        child.genome = Genome()  # same threshold: isolate the newly consumed data
-        before = child.genome
+        child.genome = Genome()  # isolate the newly consumed data
+        child.data_learning_rate = 0.005
         child.absorb_data(1.0, signature, cfg)
-        self.assertAlmostEqual(child.genome.speed, before.speed)
+        # Only the new bite grows the child; the inherited 28 units are not re-applied.
+        self.assertAlmostEqual(child.genome.speed, math.exp(0.005))
         self.assertEqual(child.diet_energy, 29.0)
 
     def test_disabled_feature_does_not_load_signatures_or_change_digests(self):

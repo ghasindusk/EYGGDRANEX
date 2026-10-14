@@ -83,7 +83,14 @@ class Organism:
 
     def absorb_data(self, amount: float, signature: tuple[float, ...],
                     config: SimulationConfig | None = None) -> None:
-        """Accumulate consumed data for life and apply only new learning to the parent."""
+        """Accumulate consumed data for life and grow the growth genome from it.
+
+        Every bite of data adds ``data_learning_rate * growth_gain * amount * direction`` to
+        the growth genome (bounded per gene by ``growth_max_log``), where ``direction`` is the
+        bite's signature scaled so its largest component is +/-1. The data sets the direction,
+        the amount eaten sets how far it grows, so growth builds up over a lifetime whatever
+        the data's contrast. The base genome never changes.
+        """
         if amount <= 0.0:
             return
         if self.diet_signal is None:
@@ -92,14 +99,12 @@ class Organism:
         self.diet_energy += amount
         if (config is not None and config.mutate_offspring
                 and config.nutrient_mutation_strength > 0):
-            bias = self.learned_bias(config)
-            assert bias is not None
-            previous = self.learned_bias_applied or (0.0,) * len(bias)
-            fraction = self.data_learning_rate
-            delta = tuple(fraction * (new - old) for new, old in zip(bias, previous))
+            peak = max((abs(s) for s in signature), default=0.0)
+            gain = self.data_learning_rate * config.growth_gain * amount / peak if peak > 0.0 else 0.0
+            delta = tuple(gain * s for s in signature)
             if any(delta):
                 self.grow(delta, config.growth_max_log)
-            self.learned_bias_applied = bias
+            self.learned_bias_applied = self.learned_bias(config)
 
     @property
     def alive(self) -> bool:
