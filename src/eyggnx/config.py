@@ -101,6 +101,13 @@ class SimulationConfig:
     nutrient_offspring_guidance: bool = True
     # Founder center for the heritable per-organism learning rate; capped at 2%.
     nutrient_parent_learning_fraction: float = 0.005
+    # Growth genome (data learning only). Each organism has a base genome fixed for life and
+    # a growth genome: per-gene log-space offsets that start at 0 and grow with the data it
+    # eats, at most +/- growth_max_log per gene. The expressed genome is
+    # base x exp(growth). With this probability a child descends from the expressed genome
+    # (base x growth); otherwise from the base genome alone. Hypothesis values.
+    growth_max_log: float = 0.1
+    growth_inheritance_probability: float = 0.5
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
     nutrient_max_files: int = 1000
@@ -145,6 +152,12 @@ class SimulationConfig:
                 or not math.isfinite(fraction) or not 0.0 <= fraction <= MAX_NUTRIENT_PARENT_LEARNING_RATE):
             raise ValueError("nutrient_parent_learning_fraction must be finite and in "
                              f"[0, {MAX_NUTRIENT_PARENT_LEARNING_RATE}], got {fraction}")
+        cap = self.growth_max_log
+        if isinstance(cap, bool) or not isinstance(cap, (int, float)) or not math.isfinite(cap) or cap < 0:
+            raise ValueError(f"growth_max_log must be finite and >= 0, got {cap}")
+        p = self.growth_inheritance_probability
+        if isinstance(p, bool) or not isinstance(p, (int, float)) or not math.isfinite(p) or not 0.0 <= p <= 1.0:
+            raise ValueError(f"growth_inheritance_probability must be in [0, 1], got {p}")
         split = self.nutrient_split_energy
         if isinstance(split, bool) or not isinstance(split, (int, float)) or not math.isfinite(split) or split < 0:
             raise ValueError(f"nutrient_split_energy must be finite and >= 0, got {split}")

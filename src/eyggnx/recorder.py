@@ -80,6 +80,10 @@ def population_metrics(sim: Simulation) -> dict[str, Any]:
             fmean(o.data_learning_rate for o in organisms) if organisms else None)
         metrics["max_data_learning_rate"] = (
             max((o.data_learning_rate for o in organisms), default=None))
+        metrics["growth_inherited_births"] = sim.growth_inherited_births
+        metrics["mean_abs_growth"] = (
+            fmean(fmean(abs(g) for g in o.growth) if o.growth else 0.0 for o in organisms)
+            if organisms else None)
     return metrics
 
 
@@ -88,6 +92,9 @@ def _organism_record(o: Organism) -> dict[str, Any]:
               "x": o.x, "y": o.y, "energy": o.energy, "genome": asdict(o.genome)}
     if o.data_learning_rate > 0:
         record["data_learning_rate"] = o.data_learning_rate
+    if o.base_genome is not None:
+        record["base_genome"] = asdict(o.base_genome)
+        record["growth"] = list(o.growth or ())
     return record
 
 

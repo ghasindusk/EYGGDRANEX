@@ -57,4 +57,5 @@ def build_run_record(spec: ExperimentSpec, sim: Simulation, snap: Snapshot) -> d
     if sim.config.nutrient_mutation_strength > 0:
         record["result"]["data_eaten_total"] = sim.data_eaten_total
         record["result"]["data_influenced_births"] = sim.data_influenced_births
+        record["result"]["growth_inherited_births"] = sim.growth_inherited_births
     return record

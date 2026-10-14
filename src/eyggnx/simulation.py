@@ -100,6 +100,7 @@ class Simulation:
         self.eaten_last_tick = 0.0
         self.data_eaten_total = 0.0
         self.data_influenced_births = 0
+        self.growth_inherited_births = 0
         base = Genome()
         founders = self.rngs["founders"]
         self.organisms = []
@@ -145,6 +146,8 @@ class Simulation:
                                            self.rngs.get("learning"))
                 if influenced:
                     self.data_influenced_births += 1
+                if child.growth_inherited:
+                    self.growth_inherited_births += 1
                 births.append(child)
                 self.next_id += 1
                 if observer is not None:
@@ -243,7 +246,11 @@ class Simulation:
                 part += (o.diet_energy.hex(),
                          None if o.diet_signal is None else tuple(v.hex() for v in o.diet_signal),
                          None if o.learned_bias_applied is None else tuple(
-                             v.hex() for v in o.learned_bias_applied), o.data_learning_rate.hex())
+                             v.hex() for v in o.learned_bias_applied), o.data_learning_rate.hex(),
+                         None if o.growth is None else tuple(v.hex() for v in o.growth),
+                         None if o.base_genome is None else tuple(
+                             float(getattr(o.base_genome, f.name)).hex() for f in fields(o.base_genome)),
+                         o.growth_inherited)
             parts.append(part)
         for r in self.world.resources:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
@@ -255,7 +262,8 @@ class Simulation:
             parts.append(part)
         parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
         if self.config.nutrient_mutation_strength > 0:
-            parts.append(("DATA", self.data_eaten_total.hex(), self.data_influenced_births))
+            parts.append(("DATA", self.data_eaten_total.hex(), self.data_influenced_births,
+                          self.growth_inherited_births))
         for name in RNG_STREAMS:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))
         if "learning" in self.rngs:

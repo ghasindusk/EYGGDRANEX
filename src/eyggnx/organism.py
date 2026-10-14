@@ -36,6 +36,32 @@ class Organism:
     diet_energy: float = 0.0
     learned_bias_applied: tuple[float, ...] | None = None
     data_learning_rate: float = 0.0
+    #: Base genome, fixed for life. ``None`` until the organism first grows; until then
+    #: ``genome`` is the base genome.
+    base_genome: Genome | None = None
+    #: Growth genome: per-gene log-space offsets, each within +/- growth_max_log.
+    growth: tuple[float, ...] | None = None
+    #: Whether this organism descended from its parent's expressed (base x growth) genome.
+    growth_inherited: bool = False
+
+    @property
+    def base(self) -> Genome:
+        """The base genome: fixed from birth to death."""
+        return self.base_genome if self.base_genome is not None else self.genome
+
+    def grow(self, delta: tuple[float, ...], cap: float) -> None:
+        """Add ``delta`` to the growth genome (bounded per gene) and re-express the genome.
+
+        Only the growth genome changes; the base genome stays as it was at birth.
+        """
+        base = self.base
+        current = self.growth or (0.0,) * len(delta)
+        growth = tuple(max(-cap, min(cap, g + d)) for g, d in zip(current, delta))
+        if growth == current:
+            return
+        self.base_genome = base
+        self.growth = growth
+        self.genome = base.shift(growth)
 
     @staticmethod
     def vary_learning_rate(rate: float, scale: float, rng: random.Random) -> float:
@@ -72,7 +98,7 @@ class Organism:
             fraction = self.data_learning_rate
             delta = tuple(fraction * (new - old) for new, old in zip(bias, previous))
             if any(delta):
-                self.genome = self.genome.shift(delta)
+                self.grow(delta, config.growth_max_log)
             self.learned_bias_applied = bias
 
     @property
@@ -97,14 +123,25 @@ class Organism:
         angle = placement.random() * math.tau
         offset = world.config.offspring_offset
         x, y = world.wrap(self.x + math.cos(angle) * offset, self.y + math.sin(angle) * offset)
-        bias = self.learned_bias(world.config) if world.config.nutrient_mutation_strength > 0 else None
+        cfg = world.config
+        bias = self.learned_bias(cfg) if cfg.nutrient_mutation_strength > 0 else None
+        # The child descends from base x growth with probability growth_inheritance_probability,
+        # otherwise from the base genome; drawn from the learning stream, only when there is growth.
+        inherit_growth = False
+        if self.growth is not None and any(self.growth) and cfg.mutate_offspring:
+            p = cfg.growth_inheritance_probability
+            if p >= 1.0:
+                inherit_growth = True
+            elif p > 0.0 and learning is not None:
+                inherit_growth = learning.random() < p
+        source = self.genome if inherit_growth else self.base
         child = Organism(
             oid=child_id,
             x=x,
             y=y,
             energy=child_energy,
-            genome=(self.genome.mutate(mutation, bias if world.config.nutrient_offspring_guidance else None)
-                    if world.config.mutate_offspring else self.genome),
+            genome=(source.mutate(mutation, bias if cfg.nutrient_offspring_guidance else None)
+                    if cfg.mutate_offspring else self.genome),
             generation=self.generation + 1,
             parent_id=self.oid,
             diet_signal=self.diet_signal if world.config.nutrient_mutation_strength > 0 else None,
@@ -114,5 +151,6 @@ class Organism:
                                 self.genome.mutation_scale, learning)
                                 if learning is not None and world.config.mutate_offspring
                                 else self.data_learning_rate),
+            growth_inherited=inherit_growth,
         )
         return child
