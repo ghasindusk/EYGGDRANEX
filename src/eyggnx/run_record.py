@@ -39,7 +39,7 @@ def run_metadata() -> dict[str, Any]:
 
 
 def build_run_record(spec: ExperimentSpec, sim: Simulation, snap: Snapshot) -> dict[str, Any]:
-    return {
+    record = {
         "format": RECORD_FORMAT,
         "format_version": RECORD_FORMAT_VERSION,
         "meta": run_metadata(),
@@ -54,3 +54,7 @@ def build_run_record(spec: ExperimentSpec, sim: Simulation, snap: Snapshot) -> d
             "state_digest": sim.state_digest(),
         },
     }
+    if sim.config.nutrient_mutation_strength > 0:
+        record["result"]["data_eaten_total"] = sim.data_eaten_total
+        record["result"]["data_influenced_births"] = sim.data_influenced_births
+    return record

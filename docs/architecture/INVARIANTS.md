@@ -36,8 +36,11 @@
 | 8 | ✅ 満たす | `test_recording_does_not_change_the_trajectory` |
 | 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction`、`tests/test_stability.py` |
 | 10 | ✅ 満たす | ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけである。制御器のパラメータは遺伝子だが、生涯の間に書き換わらない。学習・文化の層はまだない |
+
 | 11 | ✅ 満たす | LLM の層はない |
 | 12 | ✅ 満たす | `v0.1.0-alpha` / `v0.1.1-alpha` タグは不変。contract 1 の軌跡はタグから再現できる |
+
+`nutrient_mutation_strength > 0` の実験設定でも、食べたデータのバイト分布は親の一時的な摂取記録として蓄積され、繁殖時の**子の変異**にだけ作用する。親のゲノムは生涯中に変わらず、餌の分類で生物の規則は分岐しない。既定 0 では従来の軌跡と golden digest を維持する。
 
 ## How to apply
 

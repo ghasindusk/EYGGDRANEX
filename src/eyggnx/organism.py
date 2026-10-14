@@ -32,6 +32,17 @@ class Organism:
     generation: int = 0
     parent_id: int | None = None
     age: int = 0
+    diet_signal: tuple[float, ...] | None = None
+    diet_energy: float = 0.0
+
+    def absorb_data(self, amount: float, signature: tuple[float, ...]) -> None:
+        """Accumulate only data actually eaten since the last reproduction."""
+        if amount <= 0.0:
+            return
+        if self.diet_signal is None:
+            self.diet_signal = (0.0,) * len(signature)
+        self.diet_signal = tuple(a + amount * b for a, b in zip(self.diet_signal, signature))
+        self.diet_energy += amount
 
     @property
     def alive(self) -> bool:
@@ -55,12 +66,21 @@ class Organism:
         angle = placement.random() * math.tau
         offset = world.config.offspring_offset
         x, y = world.wrap(self.x + math.cos(angle) * offset, self.y + math.sin(angle) * offset)
-        return Organism(
+        bias = None
+        if (world.config.nutrient_mutation_strength > 0 and self.diet_energy > 0.0
+                and self.diet_signal is not None and any(self.diet_signal)):
+            exposure = min(1.0, self.diet_energy / self.genome.reproduction_threshold)
+            bias = tuple(world.config.nutrient_mutation_strength * exposure * value / self.diet_energy
+                         for value in self.diet_signal)
+        child = Organism(
             oid=child_id,
             x=x,
             y=y,
             energy=child_energy,
-            genome=self.genome.mutate(mutation) if world.config.mutate_offspring else self.genome,
+            genome=self.genome.mutate(mutation, bias) if world.config.mutate_offspring else self.genome,
             generation=self.generation + 1,
             parent_id=self.oid,
         )
+        self.diet_signal = None
+        self.diet_energy = 0.0
+        return child

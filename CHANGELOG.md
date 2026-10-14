@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- Optional data-guided offspring mutation (`nutrient_mutation_strength`, default `0`). A data patch carries eight signed values derived from the high-nibble distribution of its bytes. Organisms accumulate those values weighted by the energy they actually eat. On reproduction, the accumulated signal biases each gene's existing log-space mutation; the parent is never rewritten and the diet signal then resets. The strength is limited to `[0, 1]`. This is an experimental environmental bias, not a fitness score or guaranteed improvement. Recorder and run records report data intake and influenced births when enabled.
+- `experiments/nutrients/data_guided_mutation.py` compares enabled and disabled runs on the same files and seeds. The default trajectory and existing platform golden digests are unchanged; this opt-in extension uses the existing simulation contract 2 rules for feeding, reproduction, and RNG streams.
+
 ## [0.1.2-alpha] — 2026-10-07 — Simulation contract 2 and external data nutrients
 
 **Simulation contract 2.** Every seeded trajectory changes. Contract 1 remains reproducible from tag

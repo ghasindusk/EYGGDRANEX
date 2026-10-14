@@ -96,6 +96,8 @@ class Simulation:
         self.next_id = population
         #: Energy ingested during the last tick (observability only, not part of the state).
         self.eaten_last_tick = 0.0
+        self.data_eaten_total = 0.0
+        self.data_influenced_births = 0
         base = Genome()
         founders = self.rngs["founders"]
         self.organisms = []
@@ -129,7 +131,12 @@ class Simulation:
         placement, mutation = self.rngs["placement"], self.rngs["mutation"]
         for organism in organisms:
             if organism.can_reproduce():
+                influenced = (self.config.mutate_offspring and organism.diet_energy > 0.0
+                              and self.config.nutrient_mutation_strength > 0.0
+                              and organism.diet_signal is not None and any(organism.diet_signal))
                 child = organism.reproduce(self.next_id, world, placement, mutation)
+                if influenced:
+                    self.data_influenced_births += 1
                 births.append(child)
                 self.next_id += 1
                 if observer is not None:
@@ -188,12 +195,18 @@ class Simulation:
                 share = bite
                 patch.energy -= demand
                 eaten_total += demand
+                consumed = demand
             else:
                 share = patch.energy / len(eaters)
                 eaten_total += patch.energy
+                consumed = patch.energy
                 patch.energy = 0.0
+            if patch.information_signature is not None:
+                self.data_eaten_total += consumed
             for o in eaters:
                 o.energy += share
+                if patch.information_signature is not None and share > 0.0:
+                    o.absorb_data(share, patch.information_signature)
         return eaten_total
 
     def run(self, steps: int) -> Snapshot:
@@ -216,13 +229,23 @@ class Simulation:
         parts: list[tuple] = []
         for o in self.organisms:
             genes = tuple(float(getattr(o.genome, f.name)).hex() for f in fields(o.genome))
-            parts.append(("O", o.oid, o.parent_id, o.generation, o.age,
-                          o.x.hex(), o.y.hex(), o.energy.hex(), genes))
+            part = ("O", o.oid, o.parent_id, o.generation, o.age,
+                    o.x.hex(), o.y.hex(), o.energy.hex(), genes)
+            if self.config.nutrient_mutation_strength > 0:
+                part += (o.diet_energy.hex(),
+                         None if o.diet_signal is None else tuple(v.hex() for v in o.diet_signal))
+            parts.append(part)
         for r in self.world.resources:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
             # Appended only when set, so digests of runs without reservoirs are unchanged.
-            parts.append(part if r.reservoir is None else part + (r.reservoir.hex(),))
+            if r.reservoir is not None:
+                part += (r.reservoir.hex(),)
+            if r.information_signature is not None:
+                part += (tuple(v.hex() for v in r.information_signature),)
+            parts.append(part)
         parts.append(("C", self.tick_index, self.births_total, self.deaths_total, self.next_id))
+        if self.config.nutrient_mutation_strength > 0:
+            parts.append(("DATA", self.data_eaten_total.hex(), self.data_influenced_births))
         for name in RNG_STREAMS:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))
         return hashlib.sha256(repr(parts).encode()).hexdigest()

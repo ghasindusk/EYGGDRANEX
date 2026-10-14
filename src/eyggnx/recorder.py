@@ -56,7 +56,7 @@ def gene_metrics(organisms: list[Organism]) -> dict[str, dict[str, float]]:
 
 def population_metrics(sim: Simulation) -> dict[str, Any]:
     organisms = sim.organisms
-    return {
+    metrics = {
         "tick": sim.tick_index,
         "population": len(organisms),
         "births_total": sim.births_total,
@@ -71,6 +71,12 @@ def population_metrics(sim: Simulation) -> dict[str, Any]:
             if r.regen <= 0.0 or r.reservoir is not None),
         "genes": gene_metrics(organisms),
     }
+    if sim.config.nutrient_mutation_strength > 0:
+        metrics["data_eaten_total"] = sim.data_eaten_total
+        metrics["data_influenced_births"] = sim.data_influenced_births
+        metrics["mean_diet_energy_since_birth"] = (
+            fmean(o.diet_energy for o in organisms) if organisms else None)
+    return metrics
 
 
 def _organism_record(o: Organism) -> dict[str, Any]:

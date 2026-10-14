@@ -34,6 +34,7 @@ class ResourcePatch:
     capacity: float
     regen: float
     reservoir: float | None = None
+    information_signature: tuple[float, ...] | None = None
 
     def tick(self) -> None:
         if self.reservoir is None:
