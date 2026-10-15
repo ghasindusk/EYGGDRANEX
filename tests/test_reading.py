@@ -96,9 +96,30 @@ class ReadingTests(unittest.TestCase):
             self.assertEqual(runs[0], runs[1])
             self.assertNotEqual(runs[0], runs[2])
 
+    def test_shadow_table_changes_nothing_else(self):
+        with TemporaryDirectory() as directory:
+            plain = SimulationConfig(nutrient_dir=food_dir(directory), nutrient_mutation_strength=0.2,
+                                     growth_reading_heritable=True)
+            shadowed = SimulationConfig(nutrient_dir=directory, nutrient_mutation_strength=0.2,
+                                        growth_reading_heritable=True, reading_shadow_control=True)
+            a = Simulation(seed=3, population=30, config=plain)
+            b = Simulation(seed=3, population=30, config=shadowed)
+            a.run(600)
+            b.run(600)
+            self.assertEqual(a.births_total, b.births_total)
+            self.assertEqual([(o.oid, o.x, o.y, o.energy, o.genome, o.growth, o.reading) for o in a.organisms],
+                             [(o.oid, o.x, o.y, o.energy, o.genome, o.growth, o.reading) for o in b.organisms])
+            for name in a.rngs:
+                self.assertEqual(a.rngs[name].getstate(), b.rngs[name].getstate())
+            self.assertTrue(all(o.reading_shadow is not None for o in b.organisms))
+            self.assertTrue(all(o.reading_shadow is None for o in a.organisms))
+            self.assertTrue(any(o.reading_shadow != o.reading for o in b.organisms))
+
     def test_validation(self):
         with self.assertRaises(TypeError):
             SimulationConfig(growth_reading_heritable=1)
+        with self.assertRaises(TypeError):
+            SimulationConfig(reading_shadow_control=1)
         for value in (-0.1, float("nan"), True):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 SimulationConfig(reading_mutation_scale=value)

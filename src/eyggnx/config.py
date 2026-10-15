@@ -116,6 +116,10 @@ class SimulationConfig:
     # fixed identity reading (signal component i grows gene i).
     growth_reading_heritable: bool = False
     reading_mutation_scale: float = 0.1
+    # Experiment control: also carry a shadow table that is inherited and varied exactly like
+    # the reading table but never used. It has its own random stream, so it changes nothing
+    # else; comparing the two separates selection from drift in the same genealogy.
+    reading_shadow_control: bool = False
     growth_inheritance_probability: float = 0.5
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
@@ -169,6 +173,8 @@ class SimulationConfig:
             raise ValueError(f"growth_gain must be finite and >= 0, got {gain}")
         if not isinstance(self.growth_reading_heritable, bool):
             raise TypeError("growth_reading_heritable must be a bool")
+        if not isinstance(self.reading_shadow_control, bool):
+            raise TypeError("reading_shadow_control must be a bool")
         rs = self.reading_mutation_scale
         if isinstance(rs, bool) or not isinstance(rs, (int, float)) or not math.isfinite(rs) or rs < 0:
             raise ValueError(f"reading_mutation_scale must be finite and >= 0, got {rs}")

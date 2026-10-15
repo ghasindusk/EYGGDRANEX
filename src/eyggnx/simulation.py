@@ -84,6 +84,8 @@ class Simulation:
         self.rngs = {name: derive_stream(seed, name) for name in RNG_STREAMS}
         if config.nutrient_mutation_strength > 0 and config.nutrient_parent_learning_fraction > 0:
             self.rngs["learning"] = derive_stream(seed, "learning")
+            if config.growth_reading_heritable and config.reading_shadow_control:
+                self.rngs["reading_shadow"] = derive_stream(seed, "reading_shadow")
         self.world = World(width, height, self.rngs["world"], config.resource_patches, config=config)
         nutrients, self.nutrient_manifest = load_nutrients(config)
         # Pristine copies for regrowth (nutrient_regrow_interval) and the live patches.
@@ -114,6 +116,9 @@ class Simulation:
                                 genome=base.mutate(founders), data_learning_rate=rate)
             if config.growth_reading_heritable and "learning" in self.rngs:
                 organism.reading = Organism.random_reading(len(GENES) * len(GENES), self.rngs["learning"])
+                if "reading_shadow" in self.rngs:
+                    organism.reading_shadow = Organism.random_reading(len(GENES) * len(GENES),
+                                                                      self.rngs["reading_shadow"])
             self.organisms.append(organism)
         #: Optional observer (see ``eyggnx.recorder``). Observers must not mutate state or
         #: draw from the simulation's random streams; the trajectory is identical with or without one.
@@ -146,7 +151,7 @@ class Simulation:
                               and self.config.nutrient_mutation_strength > 0.0
                               and organism.diet_signal is not None and any(organism.diet_signal))
                 child = organism.reproduce(self.next_id, world, placement, mutation,
-                                           self.rngs.get("learning"))
+                                           self.rngs.get("learning"), self.rngs.get("reading_shadow"))
                 if influenced:
                     self.data_influenced_births += 1
                 if child.growth_inherited:
@@ -256,6 +261,8 @@ class Simulation:
                          o.growth_inherited)
                 if o.reading is not None:  # only with heritable reading, so other digests are unchanged
                     part += (tuple(v.hex() for v in o.reading),)
+                if o.reading_shadow is not None:
+                    part += (tuple(v.hex() for v in o.reading_shadow),)
             parts.append(part)
         for r in self.world.resources:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
@@ -273,6 +280,8 @@ class Simulation:
             parts.append(("RNG", name, repr(self.rngs[name].getstate())))
         if "learning" in self.rngs:
             parts.append(("RNG", "learning", repr(self.rngs["learning"].getstate())))
+        if "reading_shadow" in self.rngs:
+            parts.append(("RNG", "reading_shadow", repr(self.rngs["reading_shadow"].getstate())))
         return hashlib.sha256(repr(parts).encode()).hexdigest()
 
     def snapshot(self) -> Snapshot:

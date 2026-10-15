@@ -46,6 +46,8 @@ class Organism:
     #: Heritable reading table, row-major ``[gene][signal]``, each weight in [-1, 1].
     #: ``None`` = identity reading (signal component i grows gene i).
     reading: tuple[float, ...] | None = None
+    #: Shadow table (``reading_shadow_control``): inherited like ``reading``, never used.
+    reading_shadow: tuple[float, ...] | None = None
 
     @staticmethod
     def random_reading(size: int, rng: random.Random) -> tuple[float, ...]:
@@ -152,7 +154,8 @@ class Organism:
         return self.energy >= self.genome.reproduction_threshold and self.alive
 
     def reproduce(self, child_id: int, world: World, placement: random.Random,
-                  mutation: random.Random, learning: random.Random | None = None) -> "Organism":
+                  mutation: random.Random, learning: random.Random | None = None,
+                  shadow: random.Random | None = None) -> "Organism":
         child_energy = self.energy * self.genome.offspring_fraction
         self.energy -= child_energy
         angle = placement.random() * math.tau
@@ -191,4 +194,7 @@ class Organism:
         if self.reading is not None:
             child.reading = (self.vary_reading(self.reading, cfg.reading_mutation_scale, learning)
                              if learning is not None and cfg.mutate_offspring else self.reading)
+        if self.reading_shadow is not None:
+            child.reading_shadow = (self.vary_reading(self.reading_shadow, cfg.reading_mutation_scale, shadow)
+                                    if shadow is not None and cfg.mutate_offspring else self.reading_shadow)
         return child
