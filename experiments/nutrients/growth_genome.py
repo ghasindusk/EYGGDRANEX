@@ -39,6 +39,11 @@ CONDITIONS = {
                  "growth_reading_heritable": True},
     "read_p05_noguide": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5,
                          "growth_reading_heritable": True, "nutrient_offspring_guidance": False},
+    # Drift control: tables are inherited but never used (no growth, no offspring bias), so
+    # any agreement that builds up comes from drift alone.
+    "read_neutral": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5,
+                     "growth_reading_heritable": True, "nutrient_offspring_guidance": False,
+                     "growth_gain": 0.0},
 }
 
 
