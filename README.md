@@ -63,6 +63,8 @@ eyggnx --nutrient-dir path/to/data --steps 3000 --format record
 
 餌には中身の形式（先頭バイトの署名）から決まる属性があり、たとえば zip は栄養が 1.25 倍・消化の速さが半分になります。係数は `nutrient_attributes` で変えられます。
 
+食べたデータを子の変異に反映する実験は `"model": {"nutrient_mutation_strength": 0.2}` で有効にできます。既定は 0（無効）。データのバイト分布が子の変異方向に弱く作用し、生涯中の親のゲノムは変えません。必ず強くなるわけではなく、残る変化は生存と繁殖で決まります。比較方法は `experiments/nutrients/data_guided_mutation.py` を参照してください。
+
 ### Current limitations
 
 - 採餌制御器のパラメータは遺伝するが、スコア関数の形は固定である（`docs/specifications/ORGANISM_SPEC.md`）。

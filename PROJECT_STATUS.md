@@ -10,6 +10,8 @@
 
 **Simulation contract 2 and external data nutrients: complete / published**
 
+**Unreleased experiment (2026-10-15):** data-guided offspring mutation is implemented on local branch `codex/data-guided-mutation`; implementation and Windows tests are complete, while code review and cross-platform CI remain. It is opt-in (`nutrient_mutation_strength = 0` by default) and does not change the published release.
+
 ## Completed
 
 - Simulation contract 2 is the active contract on `main` (PR #3): order-neutral tick, named RNG streams, trade-off costs, log-normal reflecting mutation, continuous `max_age`, heritable foraging controller, spatial grid, optional detritus

@@ -37,6 +37,10 @@ interpreted, and nothing is fetched from the network.
   draws no random numbers and shifts no other mechanism.
 * Reproducibility: the manifest (name, size, bytes read, SHA-256, category, factors,
   energy) and its digest are stored with the simulation and in the run record.
+* Optional data-guided mutation: when ``nutrient_mutation_strength > 0``, an eight-value
+  byte-frequency signature rides with each patch. Actual intake contributes to an
+  organism's lifetime data memory, which is inherited by offspring and also
+  applies a small deterministic shift to the parent's genome.
 """
 
 from __future__ import annotations
@@ -93,6 +97,20 @@ def nutrient_energy(data: bytes, config: SimulationConfig, factor: float = 1.0) 
     return min(config.nutrient_max_energy, factor * compressed * config.nutrient_energy_per_byte)
 
 
+def information_signature(data: bytes) -> tuple[float, ...]:
+    """Eight signed signals from pairs of high-nibble byte frequencies.
+
+    This is a content fingerprint for an experimental mutation bias, not a claim
+    that a file has biological meaning. Names and format labels play no role.
+    """
+    counts = [0] * 16
+    for byte in data:
+        counts[byte >> 4] += 1
+    if not data:
+        return (0.0,) * 8
+    return tuple((counts[2 * i] - counts[2 * i + 1]) / len(data) for i in range(8))
+
+
 def nutrient_position(digest: bytes, width: float, height: float) -> tuple[float, float]:
     x = int.from_bytes(digest[0:8], "big") / 2.0**64 * width
     y = int.from_bytes(digest[8:16], "big") / 2.0**64 * height
@@ -100,13 +118,15 @@ def nutrient_position(digest: bytes, width: float, height: float) -> tuple[float
 
 
 def nutrient_patch(x: float, y: float, energy: float, config: SimulationConfig,
-                   digestibility: float = 1.0) -> ResourcePatch:
+                   digestibility: float = 1.0,
+                   signature: tuple[float, ...] | None = None) -> ResourcePatch:
     """A finite patch holding ``energy``, exposed at once or released slowly."""
     rate = config.nutrient_release_rate * digestibility
     if rate <= 0.0:
-        return ResourcePatch(x, y, energy, energy, 0.0)
+        return ResourcePatch(x, y, energy, energy, 0.0, information_signature=signature)
     exposed = min(energy, config.nutrient_release_capacity)
-    return ResourcePatch(x, y, exposed, config.nutrient_release_capacity, rate, energy - exposed)
+    return ResourcePatch(x, y, exposed, config.nutrient_release_capacity, rate,
+                         energy - exposed, signature)
 
 
 def chunks(data: bytes, size: int) -> list[bytes]:
@@ -149,7 +169,9 @@ def load_nutrients(config: SimulationConfig) -> tuple[list[ResourcePatch], dict[
             piece_energy = nutrient_energy(piece, config, attrs["energy"])
             if piece_energy > 0.0:
                 x, y = nutrient_position(hashlib.sha256(piece).digest(), config.width, config.height)
-                patches.append(nutrient_patch(x, y, piece_energy, config, attrs["digestibility"]))
+                signature = information_signature(piece) if config.nutrient_mutation_strength > 0 else None
+                patches.append(nutrient_patch(x, y, piece_energy, config,
+                                              attrs["digestibility"], signature))
                 energy += piece_energy
         record = {"name": entry.name, "size": entry.stat(follow_symlinks=False).st_size,
                   "bytes_read": len(data), "sha256": hashlib.sha256(data).hexdigest(),

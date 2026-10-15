@@ -69,17 +69,28 @@ class Genome:
     distance_aversion: float = 1.0
     wander_step: float = 0.625
 
-    def mutate(self, rng: random.Random) -> "Genome":
+    def shift(self, bias: tuple[float, ...]) -> "Genome":
+        """Apply a deterministic, bounded log-space shift without random mutation."""
+        values = {}
+        for gene, delta in zip(GENES, bias):
+            u = math.log(getattr(self, gene.name)) + delta
+            values[gene.name] = min(gene.hi, max(gene.lo, math.exp(
+                reflect(u, math.log(gene.lo), math.log(gene.hi)))))
+        return replace(self, **values)
+
+    def mutate(self, rng: random.Random, bias: tuple[float, ...] | None = None) -> "Genome":
         """Log-normal mutation with reflecting bounds in log space.
 
-        ``log v' = reflect(log v + N(0, s), log lo, log hi)``. The operator is unbiased in
-        log space (no neutral drift away from the start value) and does not pile values up
-        at the bounds.
+        ``log v' = reflect(log v + N(0, s) + bias, log lo, log hi)``. With no
+        bias, the operator is unbiased in log space; a supplied diet signal shifts
+        offspring variation without editing the parent's genome. Reflection avoids
+        piling values up at the bounds.
         """
         s = self.mutation_scale
         values = {}
-        for gene in GENES:
-            u = math.log(getattr(self, gene.name)) + rng.gauss(0.0, s)
+        for i, gene in enumerate(GENES):
+            shift = 0.0 if bias is None else bias[i]
+            u = math.log(getattr(self, gene.name)) + rng.gauss(0.0, s) + shift
             v = math.exp(reflect(u, math.log(gene.lo), math.log(gene.hi)))
             values[gene.name] = min(gene.hi, max(gene.lo, v))  # guard exp/log round-off
         return replace(self, **values)
