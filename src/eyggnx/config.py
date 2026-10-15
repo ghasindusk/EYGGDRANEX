@@ -110,6 +110,16 @@ class SimulationConfig:
     # Growth per unit of data energy eaten = data_learning_rate x growth_gain on the bite's
     # strongest signature component (the others in proportion).
     growth_gain: float = 2.0
+    # Heritable data reading: each organism carries a reading table (one weight in [-1, 1]
+    # per gene x signal component) that maps the eaten data's signal onto growth. Founders
+    # draw it at random; children inherit it with variation reading_mutation_scale. False =
+    # fixed identity reading (signal component i grows gene i).
+    growth_reading_heritable: bool = False
+    reading_mutation_scale: float = 0.1
+    # Experiment control: also carry a shadow table that is inherited and varied exactly like
+    # the reading table but never used. It has its own random stream, so it changes nothing
+    # else; comparing the two separates selection from drift in the same genealogy.
+    reading_shadow_control: bool = False
     growth_inheritance_probability: float = 0.5
     # Overrides of NUTRIENT_ATTRIBUTES, e.g. {"archive": {"energy": 1.5}}. Empty = defaults.
     nutrient_attributes: dict[str, dict[str, float]] = field(default_factory=dict)
@@ -161,6 +171,13 @@ class SimulationConfig:
         gain = self.growth_gain
         if isinstance(gain, bool) or not isinstance(gain, (int, float)) or not math.isfinite(gain) or gain < 0:
             raise ValueError(f"growth_gain must be finite and >= 0, got {gain}")
+        if not isinstance(self.growth_reading_heritable, bool):
+            raise TypeError("growth_reading_heritable must be a bool")
+        if not isinstance(self.reading_shadow_control, bool):
+            raise TypeError("reading_shadow_control must be a bool")
+        rs = self.reading_mutation_scale
+        if isinstance(rs, bool) or not isinstance(rs, (int, float)) or not math.isfinite(rs) or rs < 0:
+            raise ValueError(f"reading_mutation_scale must be finite and >= 0, got {rs}")
         p = self.growth_inheritance_probability
         if isinstance(p, bool) or not isinstance(p, (int, float)) or not math.isfinite(p) or not 0.0 <= p <= 1.0:
             raise ValueError(f"growth_inheritance_probability must be in [0, 1], got {p}")
