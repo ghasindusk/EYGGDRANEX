@@ -43,6 +43,30 @@ class Organism:
     growth: tuple[float, ...] | None = None
     #: Whether this organism descended from its parent's expressed (base x growth) genome.
     growth_inherited: bool = False
+    #: Heritable reading table, row-major ``[gene][signal]``, each weight in [-1, 1].
+    #: ``None`` = identity reading (signal component i grows gene i).
+    reading: tuple[float, ...] | None = None
+
+    @staticmethod
+    def random_reading(size: int, rng: random.Random) -> tuple[float, ...]:
+        return tuple(rng.uniform(-1.0, 1.0) for _ in range(size))
+
+    @staticmethod
+    def vary_reading(reading: tuple[float, ...], scale: float, rng: random.Random) -> tuple[float, ...]:
+        """Inherit a reading table with Gaussian variation, reflected into [-1, 1]."""
+        return tuple(min(1.0, max(-1.0, reflect(w + rng.gauss(0.0, scale), -1.0, 1.0))) for w in reading)
+
+    def growth_direction(self, signature: tuple[float, ...]) -> tuple[float, ...]:
+        """Direction of growth for one bite: the signal read through the reading table,
+        scaled so its largest component is +/-1 (all zeros if there is nothing to read)."""
+        if self.reading is None:
+            v = signature
+        else:
+            n = len(signature)
+            v = tuple(sum(self.reading[i * n + j] * signature[j] for j in range(n))
+                      for i in range(len(self.reading) // n))
+        peak = max((abs(x) for x in v), default=0.0)
+        return tuple(x / peak for x in v) if peak > 0.0 else (0.0,) * len(v)
 
     @property
     def base(self) -> Genome:
@@ -87,7 +111,8 @@ class Organism:
 
         Every bite of data adds ``data_learning_rate * growth_gain * amount * direction`` to
         the growth genome (bounded per gene by ``growth_max_log``), where ``direction`` is the
-        bite's signature scaled so its largest component is +/-1. The data sets the direction,
+        bite's signature read through the organism's reading table (identity by default) and
+        scaled so its largest component is +/-1. The data sets the direction,
         the amount eaten sets how far it grows, so growth builds up over a lifetime whatever
         the data's contrast. The base genome never changes.
         """
@@ -99,9 +124,14 @@ class Organism:
         self.diet_energy += amount
         if (config is not None and config.mutate_offspring
                 and config.nutrient_mutation_strength > 0):
-            peak = max((abs(s) for s in signature), default=0.0)
-            gain = self.data_learning_rate * config.growth_gain * amount / peak if peak > 0.0 else 0.0
-            delta = tuple(gain * s for s in signature)
+            if self.reading is None:
+                # Identity reading; same arithmetic as before reading tables existed.
+                peak = max((abs(s) for s in signature), default=0.0)
+                gain = self.data_learning_rate * config.growth_gain * amount / peak if peak > 0.0 else 0.0
+                delta = tuple(gain * s for s in signature)
+            else:
+                gain = self.data_learning_rate * config.growth_gain * amount
+                delta = tuple(gain * d for d in self.growth_direction(signature))
             if any(delta):
                 self.grow(delta, config.growth_max_log)
             self.learned_bias_applied = self.learned_bias(config)
@@ -158,4 +188,7 @@ class Organism:
                                 else self.data_learning_rate),
             growth_inherited=inherit_growth,
         )
+        if self.reading is not None:
+            child.reading = (self.vary_reading(self.reading, cfg.reading_mutation_scale, learning)
+                             if learning is not None and cfg.mutate_offspring else self.reading)
         return child

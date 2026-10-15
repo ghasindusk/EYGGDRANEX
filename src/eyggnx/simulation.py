@@ -14,7 +14,7 @@ from typing import Protocol
 
 from .config import SimulationConfig
 from .controller import DEFAULT_CONTROLLER, Controller
-from .genome import Genome
+from .genome import GENES, Genome
 from .nutrients import load_nutrients
 from .organism import Organism, basal_metabolism
 from .validation import non_negative_int, positive_finite
@@ -110,8 +110,11 @@ class Simulation:
             rate = (Organism.vary_learning_rate(config.nutrient_parent_learning_fraction,
                                                 0.1, self.rngs["learning"])
                     if "learning" in self.rngs else 0.0)
-            self.organisms.append(Organism(oid=i, x=x, y=y, energy=energy,
-                                           genome=base.mutate(founders), data_learning_rate=rate))
+            organism = Organism(oid=i, x=x, y=y, energy=energy,
+                                genome=base.mutate(founders), data_learning_rate=rate)
+            if config.growth_reading_heritable and "learning" in self.rngs:
+                organism.reading = Organism.random_reading(len(GENES) * len(GENES), self.rngs["learning"])
+            self.organisms.append(organism)
         #: Optional observer (see ``eyggnx.recorder``). Observers must not mutate state or
         #: draw from the simulation's random streams; the trajectory is identical with or without one.
         self.observer: SimulationObserver | None = None
@@ -251,6 +254,8 @@ class Simulation:
                          None if o.base_genome is None else tuple(
                              float(getattr(o.base_genome, f.name)).hex() for f in fields(o.base_genome)),
                          o.growth_inherited)
+                if o.reading is not None:  # only with heritable reading, so other digests are unchanged
+                    part += (tuple(v.hex() for v in o.reading),)
             parts.append(part)
         for r in self.world.resources:
             part = ("R", r.x.hex(), r.y.hex(), r.energy.hex(), r.capacity.hex(), r.regen.hex())
