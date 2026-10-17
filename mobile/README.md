@@ -1,0 +1,30 @@
+# EYGGDRANEX Mobile
+
+Android 端末でオフライン実行できる EYGGDRANEX のモバイル実験アプリです。`mobile` は Flutter プロジェクトです。Python 版のコード・過去のタグは変更しません。
+
+## 機能
+
+- **世界**: 個体と餌のリアルタイム表示、開始・一時停止・リセット、3段階の速度、個体数と最大世代。
+- **ルール**: バニラから開始。シード、創始個体数、餌の数・再生速度、代謝・移動コスト、突然変異、デトリタス、外部ファイルの餌とその一斉復活周期を変更。変更は次のリセットで適用。
+- **結果**: 個体数の推移、誕生・死亡数、8つの遺伝子の平均、条件と結果の JSON 共有。
+- **ファイルの餌**: Android のファイル選択画面で最大20件、各1 MBまで読み込みます。バイト列を zlib 圧縮後サイズから餌のエネルギーに変換し、ゆっくり放出します。ファイルは実行しません。
+
+## Android で実行
+
+```sh
+cd mobile
+flutter pub get
+flutter run
+```
+
+APK は `flutter build apk --debug` または `flutter build apk --release` で作ります。成果物は `mobile/build/app/outputs/flutter-apk/` に出ます。Release は現状 Flutter の初期設定に従いデバッグ鍵で署名されるため、個人端末での試用向けです。配布する場合は専用の署名鍵を設定してください。
+
+Windows の Codex アプリ内で Gradle の `Unable to establish loopback connection` が発生する環境向けに、`.github/workflows/mobile-apk.yml` は Linux で解析・テスト・APK ビルドを行い、成果物 `eyggdranex-mobile-apk` を Actions の Artifacts に保存します。APK はアーティファクトの ZIP を展開すると得られます。
+
+## Python 版との関係
+
+モバイル版は GENESIS の基本ルール（同じ世界状態を見て移動を決定、餌を公平に分ける、代謝と移動コスト、繁殖、反射境界の変異、デトリタス、データ餌のゆっくり放出と一斉復活）を Dart で実装しています。Python と Dart では乱数生成器や演算順が違うため、同じシードで **Python の simulation contract 2 の軌跡・golden digest と一致しません**。研究結果を比較するときは、同条件を Python 版でも実行してください。
+
+モバイル版には現在、Python 版の空間グリッド最適化、外部データの形式別係数・分割、データ誘導変異と個体学習を移植していません。アプリで選べるルールは画面に表示したものだけです。
+
+JSON 共有にはファイル名とサイズが含まれますが、選択したファイルの中身は含めません。同じデータ餌で再実行するには、元のファイルを再選択してください。
