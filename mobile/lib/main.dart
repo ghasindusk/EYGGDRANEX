@@ -174,7 +174,7 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
     'mobileModel': 1,
     'pythonContractDigestCompatible': false,
     'rules': sim.rules.toJson(),
-    'foodFiles': files
+    'foodFiles': sim.files
         .map((f) => {'name': f.name, 'bytes': f.bytes.length})
         .toList(),
     'tick': sim.tickIndex,

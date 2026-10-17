@@ -121,7 +121,9 @@ class MobileSimulation {
   int tickIndex = 0, births = 0, deaths = 0, maxGeneration = 0, nextId = 0;
   double eaten = 0;
 
-  MobileSimulation(SimRules input, this.files) : rules = input.copy() {
+  MobileSimulation(SimRules input, List<FoodFile> inputFiles)
+    : rules = input.copy(),
+      files = List.unmodifiable(inputFiles) {
     worldRng = Random(_seed(1));
     founderRng = Random(_seed(2));
     movementRng = Random(_seed(3));
