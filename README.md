@@ -102,9 +102,12 @@ eyggnx --config configs/default_genesis.json --format record --record-dir runs/d
 
 詳細は [`EXPERIMENT_PROTOCOL.md`](EXPERIMENT_PROTOCOL.md) を参照してください。
 
+Android 端末で世界を見ながらルールを変えて実験する場合は、[モバイルアプリ](mobile/README.md)を参照してください。モバイル版は Dart 製で、Python 版の simulation contract 2 とビット単位の軌跡は一致しません。
+
 ## Repository map
 
 - `src/eyggnx/` — GENESIS最小エンジン
+- `mobile/` — Android 実験アプリ
 - `docs/specifications/` — Genome / Organism / Evolution / Ecosystem仕様
 - `docs/architecture/` — システム構造
 - `docs/research/` — 創発判定と実験原則
