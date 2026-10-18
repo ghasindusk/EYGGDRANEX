@@ -1,8 +1,12 @@
 package com.eyggdranex.mobile
 
+import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -13,7 +17,9 @@ import java.util.ArrayDeque
 class MainActivity : FlutterActivity() {
     private val channelName = "eyggdranex.mobile/food_folder"
     private val folderRequestCode = 4107
+    private val notificationRequestCode = 4108
     private var pendingFolderResult: MethodChannel.Result? = null
+    private var pendingStartResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -36,6 +42,65 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "eyggdranex.mobile/background_run")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        if (pendingStartResult != null) {
+                            result.error("BUSY", "Background start is already pending", null)
+                        } else if (
+                            Build.VERSION.SDK_INT >= 33 &&
+                            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                            PackageManager.PERMISSION_GRANTED &&
+                            !getPreferences(Context.MODE_PRIVATE)
+                                .getBoolean("notification_prompted", false)
+                        ) {
+                            pendingStartResult = result
+                            getPreferences(Context.MODE_PRIVATE).edit()
+                                .putBoolean("notification_prompted", true).apply()
+                            requestPermissions(
+                                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                                notificationRequestCode,
+                            )
+                        } else {
+                            startSimulationService(result)
+                        }
+                    }
+                    "stop" -> {
+                        stopService(Intent(this, SimulationService::class.java))
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun startSimulationService(result: MethodChannel.Result) {
+        try {
+            val intent = Intent(this, SimulationService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            result.success(true)
+        } catch (error: Exception) {
+            result.error("BACKGROUND_START", error.message, null)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == notificationRequestCode) {
+            val result = pendingStartResult ?: return
+            pendingStartResult = null
+            // Android can run a foreground service even if the drawer notification is denied.
+            startSimulationService(result)
+        }
     }
 
     @Deprecated("Android activity result bridge for the Flutter host activity")

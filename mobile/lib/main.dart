@@ -6,12 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'background_run.dart';
 import 'simulation.dart';
 
 void main() => runApp(const EyggdranexApp());
 
 class EyggdranexApp extends StatelessWidget {
-  const EyggdranexApp({super.key});
+  const EyggdranexApp({
+    super.key,
+    this.backgroundRunner = const BackgroundRunController(),
+  });
+
+  final BackgroundRunController backgroundRunner;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'EYGGDRANEX',
@@ -42,12 +48,14 @@ class EyggdranexApp extends StatelessWidget {
         indicatorColor: Color(0xff285443),
       ),
     ),
-    home: const LabPage(),
+    home: LabPage(backgroundRunner: backgroundRunner),
   );
 }
 
 class LabPage extends StatefulWidget {
-  const LabPage({super.key});
+  const LabPage({super.key, required this.backgroundRunner});
+
+  final BackgroundRunController backgroundRunner;
   @override
   State<LabPage> createState() => _LabPageState();
 }
@@ -59,7 +67,9 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
   String? foodFolderName;
   final seedController = TextEditingController(text: '42');
   Timer? timer;
-  bool playing = false, dirty = false, loading = false;
+  Future<void>? backgroundStopping;
+  bool playing = false, starting = false, visible = true;
+  bool dirty = false, loading = false;
   int tab = 0, ticksPerFrame = 1;
   String? error;
 
@@ -73,6 +83,7 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     timer?.cancel();
+    if (playing) unawaited(widget.backgroundRunner.stop());
     WidgetsBinding.instance.removeObserver(this);
     seedController.dispose();
     super.dispose();
@@ -80,57 +91,82 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed && playing) {
-      timer?.cancel();
-      setState(() => playing = false);
+    visible = state == AppLifecycleState.resumed;
+    if (visible && mounted) setState(() {});
+  }
+
+  void _pause() {
+    timer?.cancel();
+    timer = null;
+    if (playing) {
+      backgroundStopping = widget.backgroundRunner.stop().catchError((
+        Object e,
+      ) {
+        if (mounted) setState(() => error = 'バックグラウンド実行の停止に失敗しました: $e');
+      });
+    }
+    if (mounted) setState(() => playing = false);
+  }
+
+  Future<void> _play() async {
+    if (playing) {
+      _pause();
+      return;
+    }
+    if (starting) return;
+    if (sim.life.isEmpty) _reset();
+    if (sim.life.isEmpty) return;
+    setState(() {
+      starting = true;
+      error = null;
+    });
+    try {
+      await backgroundStopping;
+      final ready = await widget.backgroundRunner.start();
+      if (!mounted) {
+        if (ready) await widget.backgroundRunner.stop();
+        return;
+      }
+      if (!ready) throw StateError('Android の実行サービスを開始できませんでした');
+      setState(() => playing = true);
+      timer = Timer.periodic(const Duration(milliseconds: 50), _onFrame);
+    } catch (e) {
+      if (mounted) setState(() => error = 'バックグラウンド実行を開始できませんでした: $e');
+    } finally {
+      if (mounted) setState(() => starting = false);
     }
   }
 
-  void _play() {
-    if (playing) {
-      timer?.cancel();
-      setState(() => playing = false);
-      return;
-    }
-    if (sim.life.isEmpty) _reset();
-    setState(() {
-      playing = true;
-      error = null;
-    });
-    timer = Timer.periodic(const Duration(milliseconds: 50), (_) {
-      if (!mounted) return;
-      try {
-        // Yield after every small batch so controls stay responsive on a phone.
-        for (var i = 0; i < ticksPerFrame && sim.life.isNotEmpty; i++) {
-          sim.tick();
-        }
-        if (sim.life.isEmpty) {
-          timer?.cancel();
-          playing = false;
-        }
-        setState(() {});
-      } catch (e) {
-        timer?.cancel();
-        setState(() {
-          playing = false;
-          error = '$e';
-        });
+  void _onFrame(Timer _) {
+    if (!mounted) return;
+    try {
+      // Yield after every small batch so controls stay responsive on a phone.
+      for (var i = 0; i < ticksPerFrame && sim.life.isNotEmpty; i++) {
+        sim.tick();
       }
-    });
+      if (sim.life.isEmpty) {
+        _pause();
+      }
+      if (visible) setState(() {});
+    } catch (e) {
+      _pause();
+      setState(() {
+        error = '$e';
+      });
+    }
   }
 
   void _reset() {
-    timer?.cancel();
+    if (starting) return;
+    _pause();
     final seed = int.tryParse(seedController.text.trim());
     if (seed == null) {
       setState(() {
         error = 'シードには整数を入力してください';
-        playing = false;
       });
       return;
     }
     setState(() {
-      playing = false;
       error = null;
       draft.seed = seed;
       sim = MobileSimulation(draft, files);
@@ -151,10 +187,7 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
     if (loading) {
       return;
     }
-    if (playing) {
-      timer?.cancel();
-      playing = false;
-    }
+    if (playing) _pause();
     setState(() => loading = true);
     try {
       final picked = await _foodFolderChannel.invokeMapMethod<String, dynamic>(
@@ -305,14 +338,20 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
         children: [
           Expanded(
             child: FilledButton.icon(
-              onPressed: _play,
+              onPressed: starting ? null : _play,
               icon: Icon(playing ? Icons.pause : Icons.play_arrow),
-              label: Text(playing ? '一時停止' : '開始'),
+              label: Text(
+                starting
+                    ? '起動中…'
+                    : playing
+                    ? '一時停止'
+                    : '開始',
+              ),
             ),
           ),
           const SizedBox(width: 8),
           OutlinedButton.icon(
-            onPressed: _reset,
+            onPressed: starting ? null : _reset,
             icon: const Icon(Icons.restart_alt),
             label: const Text('リセット'),
           ),
@@ -329,6 +368,11 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
         onSelectionChanged: (s) => setState(() => ticksPerFrame = s.first),
       ),
       const SizedBox(height: 10),
+      if (playing)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('バックグラウンドでも進行中 • 通知からアプリに戻れます'),
+        ),
       if (sim.life.isEmpty) const Text('個体群が絶滅しました。ルールを変えて再実行できます。'),
       Text(
         '緑: 個体  •  青: 再生する餌  •  琥珀: ファイルの餌',
