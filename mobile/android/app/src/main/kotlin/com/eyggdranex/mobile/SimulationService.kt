@@ -1,6 +1,5 @@
 package com.eyggdranex.mobile
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -18,7 +17,6 @@ class SimulationService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    @SuppressLint("WakelockTimeout")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val channelId = "eyggdranex_simulation"
         val notifications = getSystemService(NotificationManager::class.java)
@@ -59,9 +57,14 @@ class SimulationService : Service() {
         if (wakeLock?.isHeld != true) {
             wakeLock = (getSystemService(POWER_SERVICE) as PowerManager)
                 .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "EYGGDRANEX:Simulation")
-                .apply { acquire() }
+                // Bounded so a forgotten run cannot hold the CPU awake indefinitely.
+                .apply { acquire(WAKE_LOCK_TIMEOUT_MS) }
         }
         return START_NOT_STICKY
+    }
+
+    companion object {
+        private const val WAKE_LOCK_TIMEOUT_MS = 6L * 60 * 60 * 1000
     }
 
     override fun onDestroy() {

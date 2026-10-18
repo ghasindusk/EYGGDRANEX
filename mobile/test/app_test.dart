@@ -19,7 +19,24 @@ class FakeBackgroundRunner extends BackgroundRunController {
   Future<void> stop() async {
     stops++;
   }
+
+  bool notifications = true;
+  int settingsOpened = 0;
+
+  @override
+  Future<BackgroundStatus> status() async =>
+      BackgroundStatus(notificationsEnabled: notifications, version: '0.4.0');
+
+  @override
+  Future<void> openNotificationSettings() async {
+    settingsOpened++;
+  }
 }
+
+Finder _scrollable(String key) => find.descendant(
+  of: find.byKey(Key(key)),
+  matching: find.byType(Scrollable),
+);
 
 void main() {
   testWidgets('vanilla world can start, pause, and open rules/results', (
@@ -44,9 +61,80 @@ void main() {
     await tester.tap(find.text('結果'));
     await tester.pumpAndSettle();
     expect(find.text('実験結果'), findsOneWidget);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -1200));
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('条件と結果を共有 (JSON)'),
+      400,
+      scrollable: _scrollable('results-list'),
+    );
     expect(find.text('条件と結果を共有 (JSON)'), findsOneWidget);
+  });
+
+  testWidgets('results explain gene changes, mutations and lineages', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      EyggdranexApp(backgroundRunner: FakeBackgroundRunner()),
+    );
+    await tester.scrollUntilVisible(find.text('開始'), 300);
+    await tester.tap(find.text('開始'));
+    await tester.pump(const Duration(seconds: 3));
+    await tester.tap(find.text('一時停止'));
+    await tester.tap(find.text('結果'));
+    await tester.pumpAndSettle();
+    final results = _scrollable('results-list');
+    for (final label in ['遺伝子の変化', '速度', '突然変異', '系統', '食べた餌']) {
+      await tester.scrollUntilVisible(
+        find.text(label),
+        300,
+        scrollable: results,
+      );
+      expect(find.text(label), findsWidgets);
+    }
+    expect(find.textContaining('生き残っている系統'), findsOneWidget);
+  });
+
+  testWidgets('legend chips hide and show map layers', (tester) async {
+    await tester.pumpWidget(
+      EyggdranexApp(backgroundRunner: FakeBackgroundRunner()),
+    );
+    final chip = find.widgetWithText(FilterChip, '再生する餌  55');
+    await tester.scrollUntilVisible(
+      chip,
+      200,
+      scrollable: _scrollable('world-list'),
+    );
+    await tester.tap(chip);
+    await tester.pump();
+    final painter =
+        tester
+                .widget<CustomPaint>(
+                  find.byWidgetPredicate(
+                    (w) => w is CustomPaint && w.painter is WorldPainter,
+                  ),
+                )
+                .painter!
+            as WorldPainter;
+    expect(painter.hidden, contains(Layer.renewable));
+    expect(find.text('世界にあるもの'), findsOneWidget);
+  });
+
+  testWidgets('disabled notifications are explained while running', (
+    tester,
+  ) async {
+    final background = FakeBackgroundRunner()..notifications = false;
+    await tester.pumpWidget(EyggdranexApp(backgroundRunner: background));
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('開始'), 300);
+    await tester.tap(find.text('開始'));
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.scrollUntilVisible(
+      find.text('通知を許可'),
+      200,
+      scrollable: _scrollable('world-list'),
+    );
+    await tester.tap(find.text('通知を許可'));
+    expect(background.settingsOpened, 1);
+    await tester.tap(find.text('一時停止'));
   });
 
   testWidgets('simulation keeps ticking while app is backgrounded', (

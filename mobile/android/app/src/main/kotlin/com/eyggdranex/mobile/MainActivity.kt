@@ -70,9 +70,39 @@ class MainActivity : FlutterActivity() {
                         stopService(Intent(this, SimulationService::class.java))
                         result.success(true)
                     }
+                    "status" -> result.success(
+                        mapOf(
+                            "notificationsEnabled" to notificationsEnabled(),
+                            "version" to appVersion(),
+                        )
+                    )
+                    "openNotificationSettings" -> {
+                        openNotificationSettings()
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun notificationsEnabled(): Boolean =
+        getSystemService(android.app.NotificationManager::class.java).areNotificationsEnabled()
+
+    private fun appVersion(): String = try {
+        packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+    } catch (error: PackageManager.NameNotFoundException) {
+        ""
+    }
+
+    private fun openNotificationSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+        } else {
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", packageName, null))
+        }
+        startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     private fun startSimulationService(result: MethodChannel.Result) {

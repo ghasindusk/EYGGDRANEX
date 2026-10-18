@@ -56,6 +56,51 @@ void main() {
     expect(sim.foodPatches.single.energy, original);
     expect(sim.patches.contains(sim.foodPatches.single), isTrue);
   });
+
+  test(
+    'records mutations, lineages and food intake without changing the run',
+    () {
+      final sim = MobileSimulation(SimRules(), []);
+      for (var i = 0; i < 2000 && sim.life.isNotEmpty; i++) {
+        sim.tick();
+      }
+      expect(sim.births, greaterThan(0));
+      expect(sim.mutatedBirths, sim.births);
+      expect(sim.meanMutation(0), greaterThan(0));
+      expect(sim.eatenRenewable, greaterThan(0));
+      expect(sim.eatenFile, 0);
+      final lineages = sim.lineages();
+      expect(lineages.fold(0, (sum, e) => sum + e.value), sim.life.length);
+      expect(
+        lineages.every((e) => e.key >= 0 && e.key < sim.rules.founders),
+        isTrue,
+      );
+      expect(sim.founderMeans, hasLength(8));
+      expect(sim.geneHistory.length, sim.historyTicks.length);
+    },
+  );
+
+  test('history keeps the start of long runs at lower resolution', () {
+    final rules = SimRules()..founders = 0;
+    final sim = MobileSimulation(rules, []);
+    // No individuals: each tick samples once (population is empty).
+    for (var i = 0; i < 7000; i++) {
+      sim.tick();
+    }
+    expect(sim.historyTicks.first, 0);
+    expect(sim.historyTicks.length, lessThanOrEqualTo(601));
+    expect(sim.populationHistory.length, sim.historyTicks.length);
+  });
+
+  test('fixed genome records no mutated births', () {
+    final sim = MobileSimulation(SimRules()..mutation = false, []);
+    for (var i = 0; i < 600; i++) {
+      sim.tick();
+    }
+    expect(sim.births, greaterThan(0));
+    expect(sim.mutatedBirths, 0);
+    expect(sim.largeMutations, 0);
+  });
 }
 
 bool _same(List<double> a, List<double> b) =>
