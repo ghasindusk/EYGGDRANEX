@@ -46,7 +46,7 @@ EYGGDRANEX モバイル版を Google Play で公開するための確認事項�
    ```
    Play App Signing を使う（Google が配信用の鍵を管理し、アップロード鍵は再発行できる）
 3. **署名した AAB を作る**: `cd mobile && flutter build appbundle --release`（日本語を含むパスでは Gradle が失敗することがあるので、英数字だけのパスにコピーして実行）。成果物は `build/app/outputs/bundle/release/app-release.aab`
-4. **プライバシーポリシーを公開 URL に置く**（例: GitHub のファイル URL や GitHub Pages）
+4. ~~プライバシーポリシーを公開 URL に置く~~ → 済み（2026-10-18、Claude）: https://ghasindusk.github.io/eyggdranex/privacy.html
 4b. **AdMob の設定**
    - AdMob でこのアプリ（パッケージ名 `com.eyggdranex.mobile`）を追加し、**バナー**の広告ユニットを作る
    - `mobile/android/admob.properties`（コミットしない）:
@@ -55,7 +55,8 @@ EYGGDRANEX モバイル版を Google Play で公開するための確認事項�
      bannerId=ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ
      ```
    - AdMob の「プライバシーとメッセージ」で、GDPR の同意メッセージを作成・公開する（これがないと EEA・英国で広告が出ない）
-   - Play の掲載情報にデベロッパーのウェブサイトを登録し、そのサイトの直下に `app-ads.txt` を置く（AdMob の画面に内容が表示される）
+   - ~~`app-ads.txt` を置く~~ → 済み: https://ghasindusk.github.io/app-ads.txt 。Play の掲載情報の「ウェブサイト」に `https://ghasindusk.github.io` を登録すると、AdMob が確認する（最大 24 時間ほど）
+   - ~~ID の設定~~ → 済み: この PC の `admob.properties` に設定（コミットしない）
    - **自分の広告をタップしない**。実機で確認するときはデバッグビルド（テスト広告）か、AdMob にテスト端末を登録する
 5. **Play Console の申告**
    - 広告: 「広告を含む」を選ぶ
@@ -63,7 +64,7 @@ EYGGDRANEX モバイル版を Google Play で公開するための確認事項�
    - ターゲット層: 子ども向けにしない（13 歳以上など）。子どもを含めると広告に制限がかかる
    - 前景サービス: `specialUse` の用途説明（ユーザーが開始したシミュレーションを画面オフ中も続けるため）。動画での説明を求められることがある。認められない場合は、バックグラウンド実行を外して申請し直す
    - 通知の権限、コンテンツのレーティング（暴力・課金などなし）、ターゲット層、広告なし
-6. **ストアの掲載情報**: アプリ名、短い説明・詳しい説明、スクリーンショット（実機で撮影）、上の画像
+6. **ストアの掲載情報**: 下書きは `store/listing-ja.md`（アプリ名・説明・カテゴリ・申告の回答案）。スクリーンショットは実機で撮影する
 7. クローズドテスト → 製品版の順に公開
 
 ## 4. 未確認

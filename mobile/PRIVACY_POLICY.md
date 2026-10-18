@@ -1,6 +1,6 @@
 # プライバシーポリシー — EYGGDRANEX（Android アプリ）
 
-**下書き（未公開）**。公開前に SHAR-K が内容と連絡先を確認する。
+公開版: https://ghasindusk.github.io/eyggdranex/privacy.html （リポジトリ `ghasindusk/ghasindusk.github.io`）。内容を変えるときは両方を更新する。
 
 最終更新: 2026-10-18
 
@@ -33,7 +33,7 @@ EYGGDRANEX 自身は個人情報を収集せず、シミュレーションのデ
 
 ## 連絡先
 
-（公開前に記入: 連絡先メールアドレスまたは GitHub の Issue ページ）
+GitHub の Issue ページ（https://github.com/ghasindusk/EYGGDRANEX/issues）からご連絡ください。
 
 ---
 
