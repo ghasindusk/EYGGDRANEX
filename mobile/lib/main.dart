@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'ads.dart';
 import 'background_run.dart';
 import 'simulation.dart';
 
@@ -23,9 +24,13 @@ class EyggdranexApp extends StatelessWidget {
   const EyggdranexApp({
     super.key,
     this.backgroundRunner = const BackgroundRunController(),
+    this.ads,
   });
 
   final BackgroundRunController backgroundRunner;
+
+  /// Ads and consent; null uses AdMob.
+  final AdService? ads;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'EYGGDRANEX',
@@ -57,14 +62,15 @@ class EyggdranexApp extends StatelessWidget {
         indicatorColor: Color(0xff285443),
       ),
     ),
-    home: LabPage(backgroundRunner: backgroundRunner),
+    home: LabPage(backgroundRunner: backgroundRunner, ads: ads),
   );
 }
 
 class LabPage extends StatefulWidget {
-  const LabPage({super.key, required this.backgroundRunner});
+  const LabPage({super.key, required this.backgroundRunner, this.ads});
 
   final BackgroundRunController backgroundRunner;
+  final AdService? ads;
   @override
   State<LabPage> createState() => _LabPageState();
 }
@@ -84,6 +90,7 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
   BackgroundStatus status = const BackgroundStatus();
   final Set<Layer> hidden = {};
   bool colorByLineage = false;
+  late final AdService ads = widget.ads ?? AdService();
 
   @override
   void initState() {
@@ -91,6 +98,8 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     sim = MobileSimulation(draft, files);
     unawaited(_refreshStatus());
+    // Consent form and ads start after the first frame, once the activity is shown.
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(ads.start()));
   }
 
   @override
@@ -1268,6 +1277,19 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
         'このアプリのエンジンは Dart 製のモバイルモデルです。Python 版と同じ基礎ルールを使いますが、乱数と演算順が異なり、simulation contract 2 のビット単位の再現性はありません。厳密な比較には Python 版を使用してください。',
         style: _small,
       ),
+      ValueListenableBuilder<bool>(
+        valueListenable: ads.privacyOptionsRequired,
+        builder: (context, required, _) => required
+            ? Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: OutlinedButton.icon(
+                  onPressed: () => unawaited(ads.showPrivacyOptions()),
+                  icon: const Icon(Icons.privacy_tip_outlined),
+                  label: const Text('広告のプライバシー設定'),
+                ),
+              )
+            : const SizedBox.shrink(),
+      ),
       if (status.version.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -1312,7 +1334,21 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
           ),
       ],
     ),
-    body: IndexedStack(index: tab, children: [_world(), _rules(), _results()]),
+    body: Column(
+      children: [
+        Expanded(
+          child: IndexedStack(
+            index: tab,
+            children: [_world(), _rules(), _results()],
+          ),
+        ),
+        // Banner on the world and rules tabs only; kept in the tree so it is not reloaded.
+        Offstage(
+          offstage: tab == 2,
+          child: AdBanner(ads: ads),
+        ),
+      ],
+    ),
     bottomNavigationBar: NavigationBar(
       selectedIndex: tab,
       onDestinationSelected: (i) => setState(() => tab = i),

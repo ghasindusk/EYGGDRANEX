@@ -6,7 +6,13 @@
 
 ## 収集する情報
 
-EYGGDRANEX は個人情報を収集しません。アプリはインターネットに接続する権限を持たず、端末の外にデータを送信しません。アカウント登録、広告、解析ツールはありません。
+EYGGDRANEX 自身は個人情報を収集せず、シミュレーションのデータやファイルを端末の外に送信しません。アカウント登録はありません。
+
+## 広告
+
+このアプリは Google AdMob のバナー広告を表示します。広告の表示・効果測定・不正防止のため、AdMob が広告 ID などのデバイス識別子、IP アドレス（おおよその位置）、アプリの利用状況や診断情報を収集・利用することがあります。詳しくは Google のポリシー（https://policies.google.com/technologies/ads）をご覧ください。
+
+欧州経済領域（EEA）・英国などでは、広告を読み込む前に Google の同意画面で選択を求めます。結果のタブの「広告のプライバシー設定」から、いつでも選択を変更できます。Android の設定（Google → 広告）で広告 ID を削除・リセットすることもできます。
 
 ## 端末上で扱う情報
 
@@ -33,4 +39,4 @@ EYGGDRANEX は個人情報を収集しません。アプリはインターネッ
 
 ## Privacy Policy (English summary)
 
-EYGGDRANEX does not collect personal data. The app has no internet permission and sends nothing off the device; there are no accounts, ads or analytics. Files in a folder you pick are read on the device only (up to 20 files, first 1 MB each) to compute food energy and positions in the simulation; they are never interpreted, executed, stored or transmitted, and no persistent folder access is kept. The only stored value is whether the notification permission was requested. When you choose to share a result, the shared JSON includes the folder name and relative file names and sizes (not file contents), sent only to the destination you choose.
+EYGGDRANEX itself does not collect personal data and never sends simulation data or files off the device; there are no accounts. The app shows Google AdMob banner ads; AdMob may collect device identifiers such as the advertising ID, IP address (approximate location), app interactions and diagnostics to serve and measure ads (https://policies.google.com/technologies/ads). In the EEA, the UK and similar regions, consent is requested before ads load and can be changed under "広告のプライバシー設定" in the results tab. Files in a folder you pick are read on the device only (up to 20 files, first 1 MB each) to compute food energy and positions in the simulation; they are never interpreted, executed, stored or transmitted, and no persistent folder access is kept. The only stored value is whether the notification permission was requested. When you choose to share a result, the shared JSON includes the folder name and relative file names and sizes (not file contents), sent only to the destination you choose.
