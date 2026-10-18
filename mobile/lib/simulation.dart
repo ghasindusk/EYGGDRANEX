@@ -8,6 +8,9 @@ import 'dart:typed_data';
 const _lo = <double>[.15, 1, 12, .20, .005, 80, .01, .05];
 const _hi = <double>[4, 30, 120, .70, .25, 2000, 100, 1];
 const _initial = <double>[1, 8, 28, .42, .06, 420, 1, .625];
+const geneLower = _lo;
+const geneUpper = _hi;
+const geneInitial = _initial;
 const geneNames = <String>[
   '速度',
   '感覚範囲',
@@ -18,6 +21,32 @@ const geneNames = <String>[
   '距離選好',
   '探索幅',
 ];
+
+/// One-line meaning of each gene, shown in the results screen.
+const geneHelp = <String>[
+  '1 tick に動ける距離。速いほど移動コストが増える',
+  '餌を見つけられる距離。広いほど代謝コストが増える',
+  'このエネルギーに達すると子を産む',
+  '産むときに子へ渡すエネルギーの割合',
+  '子が親からどれだけずれるか（変異の大きさ自体も遺伝する）',
+  '生きられる最大 tick。長いほど代謝コストが増える',
+  '遠い餌をどれだけ避けるか',
+  '餌が見えないときにさまよう歩幅',
+];
+
+/// A birth whose genes changed noticeably from the parent's.
+class MutationEvent {
+  final int tick, childId, parentId, generation, gene;
+  final double ratio;
+  const MutationEvent(
+    this.tick,
+    this.childId,
+    this.parentId,
+    this.generation,
+    this.gene,
+    this.ratio,
+  );
+}
 
 class FoodFile {
   final String name;
@@ -69,7 +98,18 @@ class Life {
   int age = 0;
   double x, y, energy;
   List<double> genes;
-  Life(this.id, this.x, this.y, this.energy, this.genes, [this.generation = 0]);
+
+  /// Id of the founder this individual descends from (its own id for founders).
+  final int lineage;
+  Life(
+    this.id,
+    this.x,
+    this.y,
+    this.energy,
+    this.genes, [
+    this.generation = 0,
+    int? lineage,
+  ]) : lineage = lineage ?? id;
   bool get alive => energy > 0 && age < genes[5];
 }
 
@@ -118,8 +158,35 @@ class MobileSimulation {
   final List<Patch> foodPatches = [];
   final List<int> populationHistory = [];
   final List<int> generationHistory = [];
+
+  /// Tick of each history sample. Sampling starts every 10 ticks and halves the
+  /// resolution whenever the history grows past [_maxSamples], so a long run keeps
+  /// its beginning instead of dropping it.
+  final List<int> historyTicks = [];
+  final List<int> birthsHistory = [];
+
+  /// Mean of each gene at every history sample.
+  final List<List<double>> geneHistory = [];
+  late final List<double> founderMeans;
+  int sampleEvery = 10;
+  static const _maxSamples = 600;
   int tickIndex = 0, births = 0, deaths = 0, maxGeneration = 0, nextId = 0;
   double eaten = 0;
+
+  /// Energy eaten in total, by kind of food.
+  double eatenRenewable = 0, eatenFile = 0, eatenDetritus = 0;
+
+  /// Births whose genes differ from the parent's.
+  int mutatedBirths = 0;
+
+  /// Sum of |log(child / parent)| per gene over all births, and the count of
+  /// births where some gene changed by more than [largeMutation] in log space.
+  final List<double> mutationSum = List.filled(8, 0);
+  int largeMutations = 0;
+  static const largeMutation = .10;
+
+  /// Most recent large mutations, newest last.
+  final List<MutationEvent> recentMutations = [];
 
   MobileSimulation(SimRules input, List<FoodFile> inputFiles)
     : rules = input.copy(),
@@ -155,6 +222,7 @@ class MobileSimulation {
         ),
       );
     }
+    founderMeans = List.generate(8, meanGene);
     _sample();
   }
 
@@ -291,6 +359,13 @@ class MobileSimulation {
       final amount = min(p.energy, 3.0 * eaters.length);
       p.energy -= amount;
       eaten += amount;
+      if (p.food) {
+        eatenFile += amount;
+      } else if (p.regen < 0) {
+        eatenDetritus += amount;
+      } else {
+        eatenRenewable += amount;
+      }
       for (final o in eaters) {
         o.energy += amount / eaters.length;
       }
@@ -308,7 +383,9 @@ class MobileSimulation {
           amount,
           rules.mutation ? _mutate(o.genes, mutationRng) : List.of(o.genes),
           o.generation + 1,
+          o.lineage,
         );
+        _recordMutation(o, child);
         newborn.add(child);
         maxGeneration = max(maxGeneration, child.generation);
       }
@@ -328,17 +405,101 @@ class MobileSimulation {
       ..clear()
       ..addAll(survivors)
       ..addAll(newborn);
-    if (tickIndex % 10 == 0 || life.isEmpty) _sample();
+    if (tickIndex % sampleEvery == 0 || life.isEmpty) _sample();
+  }
+
+  void _recordMutation(Life parent, Life child) {
+    var biggest = 0, biggestSize = 0.0;
+    for (var i = 0; i < 8; i++) {
+      final size = (log(child.genes[i]) - log(parent.genes[i])).abs();
+      mutationSum[i] += size;
+      if (size > biggestSize) {
+        biggest = i;
+        biggestSize = size;
+      }
+    }
+    if (biggestSize > 0) mutatedBirths++;
+    if (biggestSize > largeMutation) {
+      largeMutations++;
+      recentMutations.add(
+        MutationEvent(
+          tickIndex,
+          child.id,
+          parent.id,
+          child.generation,
+          biggest,
+          child.genes[biggest] / parent.genes[biggest],
+        ),
+      );
+      if (recentMutations.length > 30) recentMutations.removeAt(0);
+    }
   }
 
   void _sample() {
+    if (historyTicks.isNotEmpty && historyTicks.last == tickIndex) return;
+    historyTicks.add(tickIndex);
     populationHistory.add(life.length);
     generationHistory.add(maxGeneration);
-    if (populationHistory.length > 500) {
-      populationHistory.removeAt(0);
-      generationHistory.removeAt(0);
+    birthsHistory.add(births);
+    geneHistory.add(List.generate(8, meanGene));
+    if (historyTicks.length > _maxSamples) {
+      // Keep every other sample, oldest first, and sample half as often from now on.
+      _halve(historyTicks);
+      _halve(populationHistory);
+      _halve(generationHistory);
+      _halve(birthsHistory);
+      _halve(geneHistory);
+      sampleEvery *= 2;
     }
   }
+
+  static void _halve<T>(List<T> list) {
+    final kept = [for (var i = 0; i < list.length; i += 2) list[i]];
+    list
+      ..clear()
+      ..addAll(kept);
+  }
+
+  /// Ticks until the next file-food regrowth, or null when regrowth is off.
+  int? get ticksToRegrow => rules.regrowInterval > 0 && foodPatches.isNotEmpty
+      ? rules.regrowInterval - tickIndex % rules.regrowInterval
+      : null;
+
+  int get renewableCount =>
+      patches.where((p) => !p.food && p.regen >= 0).length;
+  int get detritusCount => patches.where((p) => !p.food && p.regen < 0).length;
+  int get fileFoodCount => patches.where((p) => p.food).length;
+  double get renewableEnergy => patches
+      .where((p) => !p.food && p.regen >= 0)
+      .fold(0.0, (sum, p) => sum + p.energy);
+
+  /// Total energy the file food started with.
+  double get fileFoodTotal =>
+      foodTemplates.fold(0.0, (sum, p) => sum + p.energy + (p.reservoir ?? 0));
+
+  /// Living individuals per founder lineage, largest first.
+  List<MapEntry<int, int>> lineages() {
+    final counts = <int, int>{};
+    for (final o in life) {
+      counts[o.lineage] = (counts[o.lineage] ?? 0) + 1;
+    }
+    return counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  }
+
+  /// Minimum and maximum of a gene in the living population.
+  (double, double) geneRange(int i) {
+    if (life.isEmpty) return (0, 0);
+    var lo = double.infinity, hi = double.negativeInfinity;
+    for (final o in life) {
+      lo = min(lo, o.genes[i]);
+      hi = max(hi, o.genes[i]);
+    }
+    return (lo, hi);
+  }
+
+  /// Typical size of a mutation in gene [i] per birth, as a fraction (0.05 = 5%).
+  double meanMutation(int i) =>
+      births == 0 ? 0 : exp(mutationSum[i] / births) - 1;
 
   double meanGene(int i) => life.isEmpty
       ? 0

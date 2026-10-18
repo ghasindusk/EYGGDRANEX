@@ -7,6 +7,10 @@ on:
     paths:
       - "mobile/**"
       - ".github/workflows/mobile-apk.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-apk.yml"
 
 permissions:
   contents: read
@@ -42,3 +46,8 @@ jobs:
           name: eyggdranex-mobile-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+      # Google Play takes an App Bundle. CI has no upload key, so this bundle is signed with
+      # the debug key and only proves the build; sign the real one locally (PLAY_RELEASE.md).
+      - name: Build App Bundle (build check)
+        working-directory: mobile
+        run: flutter build appbundle --release --no-pub
