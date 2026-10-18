@@ -4,11 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-"""Compare growth-genome inheritance on the same data and seeds.
+"""Compare growth-genome inheritance and data reading on the same data and seeds.
 
-Conditions: ``off`` (data learning disabled), and data learning with
-``growth_inheritance_probability`` 0, 0.5 and 1. For every organism that dies the
-largest per-gene growth and the data it ate during its own life are recorded.
+Conditions: ``off`` (data learning disabled); data learning with
+``growth_inheritance_probability`` 0, 0.5 and 1 (identity reading); ``read_p05``
+(heritable reading table); and ``*_noguide`` variants without the data bias on
+offspring mutation. For every organism that dies the largest per-gene growth and the
+data it ate during its own life are recorded. With reading tables, the population's
+agreement and the direction its mean table reads the food in are reported.
 
     PYTHONPATH=src python experiments/nutrients/growth_genome.py --nutrient-dir DIR \
         --seeds 5 --steps 20000 --condition p05 > out.json
@@ -22,7 +25,7 @@ import json
 from statistics import fmean, median
 
 from eyggnx.config import SimulationConfig
-from eyggnx.genome import Genome
+from eyggnx.genome import GENES, Genome
 from eyggnx.simulation import Simulation
 
 CONDITIONS = {
@@ -30,7 +33,42 @@ CONDITIONS = {
     "p0": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.0},
     "p05": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5},
     "p1": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 1.0},
+    "p05_noguide": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5,
+                    "nutrient_offspring_guidance": False},
+    "read_p05": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5,
+                 "growth_reading_heritable": True},
+    "read_p05_noguide": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5,
+                         "growth_reading_heritable": True, "nutrient_offspring_guidance": False},
+    # Drift control: tables are inherited but never used (no growth, no offspring bias), so
+    # any agreement that builds up comes from drift alone.
+    "read_neutral": {"nutrient_mutation_strength": 0.2, "growth_inheritance_probability": 0.5,
+                     "growth_reading_heritable": True, "nutrient_offspring_guidance": False,
+                     "growth_gain": 0.0},
 }
+
+
+def food_direction(sim) -> list[float]:
+    """Energy-weighted mean signature of the data food, scaled to a largest component of 1."""
+    total = [0.0] * len(GENES)
+    for r in sim.world.resources:
+        if r.information_signature is not None:
+            w = r.energy + (r.reservoir or 0.0)
+            total = [t + w * s for t, s in zip(total, r.information_signature)]
+    peak = max((abs(t) for t in total), default=0.0)
+    return [t / peak for t in total] if peak > 0 else total
+
+
+def reading_summary(organisms, food) -> dict:
+    tables = [o.reading for o in organisms if o.reading is not None]
+    if not tables:
+        return {}
+    n = len(GENES)
+    mean_table = [fmean(t[k] for t in tables) for k in range(n * n)]
+    agreement = fmean(abs(m) for m in mean_table) / max(1e-12, fmean(abs(w) for t in tables for w in t))
+    v = [sum(mean_table[i * n + j] * food[j] for j in range(n)) for i in range(n)]
+    peak = max((abs(x) for x in v), default=0.0)
+    return {"agreement": agreement,
+            "food_growth_direction": {GENES[i].name: (v[i] / peak if peak > 0 else 0.0) for i in range(n)}}
 
 
 class DeathLog:
@@ -70,6 +108,8 @@ def main() -> None:
     rows = []
     for seed in range(1, args.seeds + 1):
         sim = Simulation(seed=seed, population=60, config=cfg)
+        food = food_direction(sim)
+        start_reading = reading_summary(sim.organisms, food)
         log = DeathLog()
         sim.observer = log
         sim.run(args.steps)
@@ -89,6 +129,8 @@ def main() -> None:
             "median_own_data_eaten": median(d for _, d in log.deaths) if log.deaths else None,
             "expressed_gene_means": gene_means([o.genome for o in living]),
             "base_gene_means": gene_means([o.base for o in living]),
+            "reading_start": start_reading,
+            "reading_end": reading_summary(living, food),
         })
     print(json.dumps({"condition": args.condition, "config": {k: v for k, v in CONDITIONS[args.condition].items()},
                       "growth_max_log": cfg.growth_max_log, "growth_gain": cfg.growth_gain,

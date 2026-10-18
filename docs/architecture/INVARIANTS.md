@@ -35,7 +35,7 @@
 | 7 | ✅ 満たす | 機構ごとの乱数系統（`world`, `founders`, `movement`, `placement`, `mutation`）。外部データの餌は乱数を使わず内容のハッシュで配置する。`StreamIsolationTests`、`test_nutrients_do_not_shift_other_mechanisms` |
 | 8 | ✅ 満たす | `test_recording_does_not_change_the_trajectory` |
 | 9 | ✅ 満たす | `test_reference_seed_runs_to_completion_or_extinction`、`tests/test_stability.py` |
-| 10 | ✅ 満たす | 基礎ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけで、一生変わらない。データ学習を有効にしたときだけ、分離した成長ゲノム（遺伝子ごとの対数空間のずれ、各 ±`growth_max_log` まで）が食べたデータで育ち、表に出る値は基礎 × 成長になる。子の基礎ゲノムは繁殖時にだけ作られ、確率 `growth_inheritance_probability` で親の基礎 × 成長から、それ以外は基礎ゲノムから変異させる（2026-10-15、SHAR-K の設計指示）。`GrowthGenomeTests` |
+| 10 | ✅ 満たす | 基礎ゲノムが作られるのは初期個体の生成時と繁殖時（`mutate`）だけで、一生変わらない。データ学習を有効にしたときだけ、分離した成長ゲノム（遺伝子ごとの対数空間のずれ、各 ±`growth_max_log` まで）が食べたデータで育ち、表に出る値は基礎 × 成長になる。子の基礎ゲノムは繁殖時にだけ作られ、確率 `growth_inheritance_probability` で親の基礎 × 成長から、それ以外は基礎ゲノムから変異させる（2026-10-15、SHAR-K の設計指示）。遺伝する読み取り表（`growth_reading_heritable`）も誕生時にだけ作られる。`GrowthGenomeTests`、`ReadingTests` |
 | 11 | ✅ 満たす | LLM の層はない |
 | 12 | ✅ 満たす | `v0.1.0-alpha` / `v0.1.1-alpha` タグは不変。contract 1 の軌跡はタグから再現できる |
 
