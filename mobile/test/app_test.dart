@@ -1,3 +1,4 @@
+import 'package:eyggdranex_mobile/ads.dart';
 import 'package:eyggdranex_mobile/background_run.dart';
 import 'package:eyggdranex_mobile/main.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +44,9 @@ void main() {
     tester,
   ) async {
     final background = FakeBackgroundRunner();
-    await tester.pumpWidget(EyggdranexApp(backgroundRunner: background));
+    await tester.pumpWidget(
+      EyggdranexApp(backgroundRunner: background, ads: NoAds()),
+    );
     expect(find.text('世界を観察する'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('開始'), 300);
     await tester.tap(find.text('開始'));
@@ -73,7 +76,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      EyggdranexApp(backgroundRunner: FakeBackgroundRunner()),
+      EyggdranexApp(backgroundRunner: FakeBackgroundRunner(), ads: NoAds()),
     );
     await tester.scrollUntilVisible(find.text('開始'), 300);
     await tester.tap(find.text('開始'));
@@ -95,7 +98,7 @@ void main() {
 
   testWidgets('legend chips hide and show map layers', (tester) async {
     await tester.pumpWidget(
-      EyggdranexApp(backgroundRunner: FakeBackgroundRunner()),
+      EyggdranexApp(backgroundRunner: FakeBackgroundRunner(), ads: NoAds()),
     );
     final chip = find.widgetWithText(FilterChip, '再生する餌  55');
     await tester.scrollUntilVisible(
@@ -122,7 +125,9 @@ void main() {
     tester,
   ) async {
     final background = FakeBackgroundRunner()..notifications = false;
-    await tester.pumpWidget(EyggdranexApp(backgroundRunner: background));
+    await tester.pumpWidget(
+      EyggdranexApp(backgroundRunner: background, ads: NoAds()),
+    );
     await tester.pump();
     await tester.scrollUntilVisible(find.text('開始'), 300);
     await tester.tap(find.text('開始'));
@@ -141,7 +146,9 @@ void main() {
     tester,
   ) async {
     final background = FakeBackgroundRunner();
-    await tester.pumpWidget(EyggdranexApp(backgroundRunner: background));
+    await tester.pumpWidget(
+      EyggdranexApp(backgroundRunner: background, ads: NoAds()),
+    );
     await tester.scrollUntilVisible(find.text('開始'), 300);
     await tester.tap(find.text('開始'));
     await tester.pump(const Duration(milliseconds: 120));
@@ -174,7 +181,9 @@ void main() {
     tester,
   ) async {
     final background = FakeBackgroundRunner()..allowed = false;
-    await tester.pumpWidget(EyggdranexApp(backgroundRunner: background));
+    await tester.pumpWidget(
+      EyggdranexApp(backgroundRunner: background, ads: NoAds()),
+    );
     await tester.scrollUntilVisible(find.text('開始'), 300);
     await tester.tap(find.text('開始'));
     await tester.pumpAndSettle();
@@ -206,7 +215,7 @@ void main() {
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null),
     );
-    await tester.pumpWidget(const EyggdranexApp());
+    await tester.pumpWidget(EyggdranexApp(ads: NoAds()));
     await tester.tap(find.text('ルール'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -219,4 +228,22 @@ void main() {
     expect(find.text('研究データ  •  1件のファイル'), findsOneWidget);
     expect(find.text('sub/food.txt'), findsOneWidget);
   });
+
+  testWidgets(
+    'privacy options appear when the consent platform requires them',
+    (tester) async {
+      final ads = NoAds()..privacyOptionsRequired.value = true;
+      await tester.pumpWidget(
+        EyggdranexApp(backgroundRunner: FakeBackgroundRunner(), ads: ads),
+      );
+      await tester.tap(find.text('結果'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('広告のプライバシー設定'),
+        400,
+        scrollable: _scrollable('results-list'),
+      );
+      expect(find.text('広告のプライバシー設定'), findsOneWidget);
+    },
+  );
 }

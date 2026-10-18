@@ -16,10 +16,25 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// AdMob IDs: put the real ones in android/admob.properties (appId=..., bannerId=...).
+// Debug builds always use Google's test IDs; never request real ads while testing.
+val admobProperties = Properties()
+val admobPropertiesFile = rootProject.file("admob.properties")
+if (admobPropertiesFile.exists()) {
+    admobProperties.load(FileInputStream(admobPropertiesFile))
+}
+val testAdmobAppId = "ca-app-pub-3940256099942544~3347511713"
+val testBannerId = "ca-app-pub-3940256099942544/9214589741"
+
 android {
     namespace = "com.eyggdranex.mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    buildFeatures {
+        // admob_banner_id below is a generated string resource (off by default in newer AGP).
+        resValues = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -30,10 +45,14 @@ android {
         applicationId = "com.eyggdranex.mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // google_mobile_ads needs API 24.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["admobAppId"] =
+            admobProperties.getProperty("appId", testAdmobAppId)
+        resValue("string", "admob_banner_id", admobProperties.getProperty("bannerId", testBannerId))
     }
 
     signingConfigs {
@@ -48,7 +67,15 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            manifestPlaceholders["admobAppId"] = testAdmobAppId
+            resValue("string", "admob_banner_id", testBannerId)
+        }
         release {
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {

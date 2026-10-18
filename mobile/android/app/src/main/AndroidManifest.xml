@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Banner ads (AdMob). The ads SDK also declares ACCESS_NETWORK_STATE and AD_ID. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="EYGGDRANEX"
         android:name="${applicationName}"
@@ -41,6 +43,9 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-started, continuous, offline artificial-life simulation" />
         </service>
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

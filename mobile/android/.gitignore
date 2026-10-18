@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# AdMob IDs for release builds (not secret, but specific to the publisher account).
+admob.properties

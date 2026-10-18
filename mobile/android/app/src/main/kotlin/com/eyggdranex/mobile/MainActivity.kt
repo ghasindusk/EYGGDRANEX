@@ -42,6 +42,14 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "eyggdranex.mobile/ads")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    // Test ID in debug builds, the configured one in release (build.gradle.kts).
+                    "bannerId" -> result.success(getString(R.string.admob_banner_id))
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "eyggdranex.mobile/background_run")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
