@@ -2,9 +2,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -27,7 +24,23 @@ class EyggdranexApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
       scaffoldBackgroundColor: const Color(0xff0b1417),
-      cardTheme: const CardThemeData(color: Color(0xff15242a)),
+      cardTheme: CardThemeData(
+        color: const Color(0xff12252a),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xff254147)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xff12252a),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: Color(0xff102125),
+        indicatorColor: Color(0xff285443),
+      ),
     ),
     home: const LabPage(),
   );
@@ -43,6 +56,7 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
   SimRules draft = SimRules();
   late MobileSimulation sim;
   final List<FoodFile> files = [];
+  String? foodFolderName;
   final seedController = TextEditingController(text: '42');
   Timer? timer;
   bool playing = false, dirty = false, loading = false;
@@ -129,7 +143,11 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
     dirty = true;
   });
 
-  Future<void> _pickFiles() async {
+  static const _foodFolderChannel = MethodChannel(
+    'eyggdranex.mobile/food_folder',
+  );
+
+  Future<void> _pickFolder() async {
     if (loading) {
       return;
     }
@@ -139,31 +157,23 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
     }
     setState(() => loading = true);
     try {
-      final picked = await FilePicker.pickFiles(type: FileType.any);
-      if (picked.isEmpty) return;
-      final usable = <FoodFile>[];
-      for (final f in picked.take(20)) {
-        final builder = BytesBuilder(copy: false);
-        await for (final chunk in f.readAsByteStream()) {
-          final available = 1000000 - builder.length;
-          if (available <= 0) break;
-          builder.add(
-            chunk.length > available
-                ? Uint8List.sublistView(chunk, 0, available)
-                : chunk,
-          );
-        }
-        final bytes = builder.takeBytes();
-        if (bytes.isNotEmpty) usable.add(FoodFile(f.name, bytes));
-      }
+      final picked = await _foodFolderChannel.invokeMapMethod<String, dynamic>(
+        'pickFoodFolder',
+      );
+      if (picked == null || !mounted) return;
+      final usable = <FoodFile>[
+        for (final entry in (picked['files'] as List<dynamic>).cast<Map>())
+          FoodFile(entry['name'] as String, entry['bytes'] as Uint8List),
+      ];
       _change(() {
         files
           ..clear()
           ..addAll(usable);
+        foodFolderName = picked['folder'] as String?;
         draft.useFood = usable.isNotEmpty;
       });
     } catch (e) {
-      if (mounted) setState(() => error = 'ファイルを読み込めませんでした: $e');
+      if (mounted) setState(() => error = 'フォルダを読み込めませんでした: $e');
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -177,6 +187,7 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
     'foodFiles': sim.files
         .map((f) => {'name': f.name, 'bytes': f.bytes.length})
         .toList(),
+    'foodFolder': foodFolderName,
     'tick': sim.tickIndex,
     'population': sim.life.length,
     'births': sim.births,
@@ -350,12 +361,42 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
             child: Text(error!),
           ),
         ),
-      const Text(
-        '世界を観察する',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
+            colors: [Color(0xff173c39), Color(0xff12252a)],
+          ),
+          border: Border.all(color: const Color(0xff366351)),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/brand/eyggdranex-mark.png',
+                width: 72,
+                height: 72,
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '世界を観察する',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text('種から始まる、手のひらの生態系。'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      const SizedBox(height: 4),
-      const Text('バニラから始めて、ルールを選び、違いを確かめる。'),
     ],
   );
 
@@ -484,8 +525,8 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
         ),
       ),
       _tile(
-        '端末のファイルを餌に',
-        'ファイルのバイト列を読むだけ。最大20件・各1 MB',
+        'フォルダを餌に',
+        'サブフォルダも含む最大20件。各ファイルの先頭1 MBを使用',
         Switch(
           value: draft.useFood && files.isNotEmpty,
           onChanged: files.isEmpty
@@ -494,10 +535,15 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
         ),
       ),
       OutlinedButton.icon(
-        onPressed: loading ? null : _pickFiles,
+        onPressed: loading ? null : _pickFolder,
         icon: const Icon(Icons.folder_open),
-        label: Text(loading ? '読み込み中…' : 'ファイルを選択 (${files.length}件)'),
+        label: Text(loading ? '読み込み中…' : '餌のフォルダを選択'),
       ),
+      if (foodFolderName != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text('$foodFolderName  •  ${files.length}件のファイル'),
+        ),
       if (files.isNotEmpty)
         Text(
           files.map((f) => f.name).join('、'),
@@ -599,7 +645,20 @@ class _LabPageState extends State<LabPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('EYGGDRANEX'),
+      title: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: Image.asset(
+              'assets/brand/eyggdranex-mark.png',
+              width: 30,
+              height: 30,
+            ),
+          ),
+          const SizedBox(width: 9),
+          const Text('EYGGDRANEX'),
+        ],
+      ),
       centerTitle: false,
       actions: [
         if (playing)
